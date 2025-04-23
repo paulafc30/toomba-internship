@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Files</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+
+<body>
+    <x-app-layout>
+        <x-slot name="header">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                {{ __('Files') }}
+                @isset($folder)
+                {{ __('in Folder:') }} {{ $folder->name }}
+                @endisset
+            </h2>
+        </x-slot>
+        <div class="py-12">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 text-gray-900">
+                        <h1>{{ __('Files List') }}</h1>
+                        <ul class="list-group mb-4">
+                            @if (isset($files) && $files->isNotEmpty())
+                            @foreach($files as $file)
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ $file['name'] }}
+                                <div>
+                                    <a href="{{ Storage::url($file['path']) }}" target="_blank" class="btn btn-sm btn-info">{{ __('View') }}</a>
+                                    <a href="{{ route('download', $file['id']) }}" class="btn btn-sm btn-success ml-2">{{ __('Download') }}</a>
+
+                                    @if ($file['folder_id'] === null)
+                                    <form action="{{ route('files.destroy.standalone', $file['name']) }}" method="POST" class="d-inline ml-2">
+                                        @csrf
+                                        @method('DELETE')
+                                        <<button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('{{ __('Are you sure you want to delete this file?') }}')">{{ __('Delete') }}</button>
+                                    </form>
+                                    @else
+                                    @if (Auth::check() && Auth::user()->user_type === 'administrator')
+                                    <form action="{{ route('admin.folders.files.destroy', ['folder' => $file['folder_id'], 'file' => $file['id']]) }}" method="POST" class="d-inline ml-2">
+                                        @csrf
+                                        @method('DELETE')
+                                        <<button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('{{ __('Are you sure you want to delete this file?') }}')">{{ __('Delete') }}</button>
+                                    </form>
+                                    @elseif (Auth::check() && Auth::user()->user_type === 'client')
+                                    <form action="{{ route('client.files.destroy', $file['id']) }}" method="POST" class="d-inline ml-2">
+                                        @csrf
+                                        @method('DELETE')
+                                        <<button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('{{ __('Are you sure you want to delete this file?') }}')">{{ __('Delete') }}</button>
+                                    </form>
+                                    @endif
+                                    @endif
+                                </div>
+                            </li>
+                            @endforeach
+                            @else
+                            <li class="list-group-item">{{ __('No files available.') }}</li>
+                            @endif
+                        </ul>
+                        @isset($folder)
+                        <h2>{{ __('Upload files') }} ({{ $folder->name }})</h2>
+                        @if (session('success'))
+                        <div class="alert alert-success">{{ session('success') }}</div>
+                        @endif
+                        <form action="{{ route('admin.folders.files.upload', $folder->id) }}" method="POST" enctype="multipart/form-data" class="mb-3">
+                            @csrf
+                            <div class="input-group">
+                                <input type="file" name="file" id="fileInput" class="form-control d-none" required onchange="updateFileName()">
+                                <label class="btn btn-outline-secondary" for="fileInput">{{ __('Select files') }}</label>
+                                <input type="text" class="form-control" id="fileName" placeholder="{{ __('No file selected') }}" readonly>
+                                <button type="submit" class="btn btn-primary">{{ __('Upload File') }}</button>
+                            </div>
+                        </form>
+                        @endisset
+                        <a href="{{ route('admin.folders.index') }}" class="btn btn-secondary">{{ __('Back to Folder List') }}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </x-app-layout>
+    <script>
+        function updateFileName() {
+            const fileInput = document.getElementById('fileInput');
+            const fileNameDisplay = document.getElementById('fileName');
+
+            if (fileInput.files.length > 0) {
+                fileNameDisplay.value = fileInput.files[0].name;
+            } else {
+                fileNameDisplay.value = '{{ __("No file selected") }}';
+            }
+        }
+    </script>
+</body>
+
+</html>
