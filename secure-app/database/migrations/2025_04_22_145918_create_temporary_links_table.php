@@ -11,8 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('temporary_links', function (Blueprint $table) {
+        Schema::create('temporarylinks', function (Blueprint $table) {
             $table->id();
+            $table->string('token')->unique(); 
+            $table->string('name')->nullable(); 
+            $table->string('email')->nullable(); 
+            $table->timestamp('expires_at'); 
+            $table->string('password')->nullable(); 
             $table->timestamps();
         });
     }
@@ -22,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('temporary_links');
+        Schema::dropIfExists('temporarylinks');
     }
 };

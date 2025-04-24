@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use App\Models\TemporaryLink;
 
 // Controller for handling file-related operations
 class FileController extends Controller
@@ -176,11 +177,48 @@ class FileController extends Controller
     public function dowloadFile(File $file)
     {
         $path = Storage::path($file->path);
-    
+
         if (FileFacade::exists($path)) {
             return response()->download($path, $file->name);
         } else {
             return back()->with('error', __('File not found.'));
         }
+    }
+    public function generateTemporaryLink(File $file)
+    {
+        $token = Str::random(60);
+        $expiresTimestamp = time() + (24 * 3600); // Expiración en 24 horas (en segundos)
+        $expiresAt = date('Y-m-d H:i:s', $expiresTimestamp); // Formato para la base de datos
+
+        $temporaryLink = TemporaryLink::create([
+            'file_id' => $file->id,
+            'token' => $token,
+            'expires_at' => $expiresAt,
+        ]);
+
+        $temporaryLinkUrl = route('temporary-link.access', ['token' => $token]);
+
+        return back()->with('success', __('Temporary link generated: ') . $temporaryLinkUrl);
+    }
+
+    public function accessTemporaryLink(string $token)
+    {
+        $temporaryLink = TemporaryLink::where('token', $token)->firstOrFail();
+
+        if ($temporaryLink->expires_at) {
+            $expirationTimestamp = strtotime($temporaryLink->expires_at);
+            if (time() > $expirationTimestamp) {
+                $temporaryLink->delete();
+                abort(404, __('Temporary link has expired.'));
+            }
+        }
+
+        $file = $temporaryLink->file;
+        $filePath = Storage::path($file->path);
+        $fileName = $file->name;
+
+        return response()->file($filePath, [
+            'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+        ]);
     }
 }
