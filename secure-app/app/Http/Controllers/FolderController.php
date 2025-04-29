@@ -73,8 +73,9 @@ class FolderController extends Controller
         ]);
 
         $folder = Folder::create(['name' => $request->name]);
+
         // Handle file uploads if the user is a client and files are present
-        if (Auth::user() && !Auth::user()->user_type === 'administrator' && $request->hasFile('files')) {
+        if (Auth::user() && Auth::user()->user_type !== 'administrator' && $request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
                 $filename = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '_' . time() . '.' . $file->getClientOriginalExtension();
                 $path = $file->storeAs('uploads/' . $folder->id, $filename, 'public');
@@ -200,25 +201,57 @@ class FolderController extends Controller
 
     /**
      * Remove the specified resource (folder) from storage.
-     * Deletes the folder.
+     * Deletes the folder and its associated files from storage.
      *
      * @param Folder $folder
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(Folder $folder): RedirectResponse
+    public function destroy(Folder $folder)
     {
+        $user = Auth::user();
+
+        if ($user->user_type !== 'administrator' ) {
+            abort(403, __('Unauthorized action.'));
+        }
+
         // 1. Eliminar primero los permisos asociados a esta carpeta
         \App\Models\Permission::where('folder_id', $folder->id)->delete();
 
-        // 2. Ahora puedes eliminar la carpeta
+        // Obtener todos los archivos asociados a esta carpeta
+        $filesToDelete = File::where('folder_id', $folder->id)->get();
+
+        // Eliminar los archivos del storage y de la base de datos
+        foreach ($filesToDelete as $file) {
+            $filePathInStorage = str_replace(Storage::url(''), '', $file->path);
+            if (Storage::disk('public')->exists($filePathInStorage)) {
+                Storage::disk('public')->delete($filePathInStorage);
+            }
+            $file->delete(); // Eliminar el registro del archivo de la base de datos
+        }
+
+        // Eliminar la subcarpeta de uploads correspondiente a esta carpeta
+        $folderPathInStorage = 'uploads/' . $folder->id;
+        if (Storage::disk('public')->exists($folderPathInStorage)) {
+            Storage::disk('public')->deleteDirectory($folderPathInStorage);
+        }
+
+        // Eliminar la carpeta de la base de datos
         $folder->delete();
 
-        if (Auth::user() && Auth::user()->user_type === 'administrator') {
-            $redirectRoute = 'admin.folders.index';
-        } else {
-            $redirectRoute = 'client.folders.index';
+        return redirect()->route('admin.folders.index')->with('success', __('Folder deleted successfully.'));
+    }
+
+    /**
+     * Check if a folder in storage (within uploads) is empty and delete it.
+     *
+     * @param int $folderId
+     * @return void
+     */
+    public function deleteEmptyStorageFolder(int $folderId)
+    {
+        $folderPathInStorage = 'uploads/' . $folderId;
+        if (Storage::disk('public')->exists($folderPathInStorage) && empty(Storage::disk('public')->files($folderPathInStorage))) {
+            Storage::disk('public')->deleteDirectory($folderPathInStorage);
         }
-        $successMessage = 'Folder deleted successfully.';
-        return redirect()->route($redirectRoute)->with('success', $successMessage);
     }
 }

@@ -8,8 +8,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\File as FileFacade;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
@@ -58,11 +56,11 @@ class FileController extends Controller
         $file = $request->file('file');
         $fileName = time() . '_' . $file->getClientOriginalName();
 
-        $ruta = $file->storeAs('', $fileName, 'public'); // Guarda en storage/app/public/$fileName
+        $rutaRelativa = $file->storeAs('', $fileName, 'public'); // Guarda la ruta relativa
         File::create([
             'folder_id' => null,
             'name' => $file->getClientOriginalName(),
-            'path' => $ruta, // Guarda la ruta relativa: nombre_del_archivo.ext
+            'path' => $rutaRelativa, // Guarda la ruta relativa
             'size' => $file->getSize(),
             'mime_type' => $file->getClientMimeType(),
         ]);
@@ -106,12 +104,12 @@ class FileController extends Controller
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $filename = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $pathRelative = $file->storeAs('uploads/' . $folder->id, $filename, 'public'); // Guarda y obtiene la ruta relativa
+            $pathRelative = $file->storeAs('uploads/' . $folder->id, $filename, 'public'); // Guarda la ruta relativa
 
             File::create([
                 'folder_id' => $folder->id,
                 'name' => $file->getClientOriginalName(),
-                'path' => $pathRelative, // Usa la ruta relativa directamente
+                'path' => $pathRelative, // Guarda la ruta relativa
                 'mime_type' => $file->getClientMimeType(),
                 'size' => $file->getSize(),
             ]);
@@ -138,6 +136,10 @@ class FileController extends Controller
 
             $file->delete();
 
+            // Verificar si la carpeta ahora está vacía y eliminarla del storage
+            $folderController = new FolderController();
+            $folderController->deleteEmptyStorageFolder($folder->id);
+
             return back()->with('success', __('File deleted successfully.'));
         } catch (\Exception $e) {
             return back()->with('error', __('Error deleting file: ') . $e->getMessage());
@@ -163,7 +165,14 @@ class FileController extends Controller
                     Storage::disk('public')->delete(str_replace(Storage::url(''), '', $file->path));
                 }
 
+                $folderId = $file->folder_id;
                 $file->delete();
+
+                // Verificar si la carpeta ahora está vacía y eliminarla del storage (si el archivo estaba en una carpeta)
+                if ($folderId) {
+                    $folderController = new FolderController();
+                    $folderController->deleteEmptyStorageFolder($folderId);
+                }
 
                 return back()->with('success', __('File deleted successfully.'));
             } catch (\Exception $e) {
@@ -176,15 +185,13 @@ class FileController extends Controller
 
     public function dowloadFile(File $file)
     {
-        $path = Storage::path($file->path);
-    
-        if (FileFacade::exists($path)) {
-            return response()->download($path, $file->name);
+        if (Storage::disk('public')->exists($file->path)) {
+            return Storage::disk('public')->download($file->path, $file->name);
         } else {
             return back()->with('error', __('File not found.'));
         }
     }
-    
+
     public function generateTemporaryLink(File $file)
     {
         $token = Str::random(60);
