@@ -18,6 +18,8 @@ class FileController extends Controller
 {
     /**
      * Display a view with all standalone files (not associated with a folder).
+     *
+     * @return \Illuminate\Contracts\View\View
      */
     public function showAllFilesView(): View
     {
@@ -28,6 +30,9 @@ class FileController extends Controller
 
     /**
      * Display a view with files belonging to a specific folder.
+     *
+     * @param  \App\Models\Folder  $folder
+     * @return \Illuminate\Contracts\View\View
      */
     public function index(Folder $folder): View
     {
@@ -37,8 +42,10 @@ class FileController extends Controller
 
     /**
      * Load a view to display all files (standalone).
+     *
+     * @return \Illuminate\Contracts\View\View
      */
-    public function loadView()
+    public function loadView(): View
     {
         $files = File::all();
         return view('files', ['files' => $files]);
@@ -46,8 +53,11 @@ class FileController extends Controller
 
     /**
      * Upload a standalone file (not associated with a folder).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function uploadStandalone(Request $request)
+    public function uploadStandalone(Request $request): RedirectResponse
     {
         $request->validate([
             'file' => 'required|file|max:2048',
@@ -56,11 +66,11 @@ class FileController extends Controller
         $file = $request->file('file');
         $fileName = time() . '_' . $file->getClientOriginalName();
 
-        $rutaRelativa = $file->storeAs('', $fileName, 'public'); // Guarda la ruta relativa
+        $relativePath = $file->storeAs('', $fileName, 'public'); // Store the relative path
         File::create([
             'folder_id' => null,
             'name' => $file->getClientOriginalName(),
-            'path' => $rutaRelativa, // Guarda la ruta relativa
+            'path' => $relativePath, // Store the relative path
             'size' => $file->getSize(),
             'mime_type' => $file->getClientMimeType(),
         ]);
@@ -71,8 +81,11 @@ class FileController extends Controller
 
     /**
      * Delete a standalone file from storage and the database.
+     *
+     * @param  string  $filename
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroyStandalone(string $filename)
+    public function destroyStandalone(string $filename): RedirectResponse
     {
         $fileToDelete = File::where('name', $filename)
             ->whereNull('folder_id')
@@ -94,8 +107,12 @@ class FileController extends Controller
     }
     /**
      * Store a new file associated with a specific folder.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Folder  $folder
+     * @return \Illuminate\Http\RedirectResponse
      */
-    public function storeFile(Request $request, Folder $folder)
+    public function storeFile(Request $request, Folder $folder): RedirectResponse
     {
         $request->validate([
             'file' => 'required|file|max:2048',
@@ -104,12 +121,12 @@ class FileController extends Controller
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $filename = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $pathRelative = $file->storeAs('uploads/' . $folder->id, $filename, 'public'); // Guarda la ruta relativa
+            $pathRelative = $file->storeAs('uploads/' . $folder->id, $filename, 'public'); // Store the relative path
 
             File::create([
                 'folder_id' => $folder->id,
                 'name' => $file->getClientOriginalName(),
-                'path' => $pathRelative, // Guarda la ruta relativa
+                'path' => $pathRelative, // Store the relative path
                 'mime_type' => $file->getClientMimeType(),
                 'size' => $file->getSize(),
             ]);
@@ -121,10 +138,14 @@ class FileController extends Controller
     }
     /**
      * Delete a file within a specific folder (for administrators).
+     *
+     * @param  \App\Models\Folder  $folder
+     * @param  \App\Models\File  $file
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function destroyFileInFolder(Folder $folder, File $file): RedirectResponse
     {
-        // Verificar si el archivo pertenece a la carpeta
+        // Verify if the file belongs to the folder
         if ($file->folder_id !== $folder->id) {
             abort(403, __('Unauthorized action.'));
         }
@@ -136,7 +157,7 @@ class FileController extends Controller
 
             $file->delete();
 
-            // Verificar si la carpeta ahora está vacía y eliminarla del storage
+            // Check if the folder is now empty and delete it from storage
             $folderController = new FolderController();
             $folderController->deleteEmptyStorageFolder($folder->id);
 
@@ -149,16 +170,16 @@ class FileController extends Controller
     /**
      * Delete a file (standalone or within a folder) for a client.
      *
-     * @param File $file
+     * @param  \App\Models\File  $file
      * @return \Illuminate\Http\RedirectResponse
      */
     public function destroyFile(File $file): RedirectResponse
     {
         if (Auth::user() && Auth::user()->user_type === 'client') {
-            // Aquí deberías añadir tu lógica de permisos para verificar
-            // si el cliente tiene permiso para eliminar este archivo ($file).
-            // Por ejemplo, verificar si el archivo pertenece a una carpeta
-            // a la que el cliente tiene acceso.
+            // Here you should add your permission logic to verify
+            // if the client has permission to delete this file ($file).
+            // For example, verify if the file belongs to a folder
+            // that the client has access to.
 
             try {
                 if (Storage::disk('public')->exists(str_replace(Storage::url(''), '', $file->path))) {
@@ -168,7 +189,7 @@ class FileController extends Controller
                 $folderId = $file->folder_id;
                 $file->delete();
 
-                // Verificar si la carpeta ahora está vacía y eliminarla del storage (si el archivo estaba en una carpeta)
+                // Check if the folder is now empty and delete it from storage (if the file was in a folder)
                 if ($folderId) {
                     $folderController = new FolderController();
                     $folderController->deleteEmptyStorageFolder($folderId);
@@ -183,6 +204,12 @@ class FileController extends Controller
         }
     }
 
+    /**
+     * Download a specific file.
+     *
+     * @param  \App\Models\File  $file
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\RedirectResponse
+     */
     public function dowloadFile(File $file)
     {
         if (Storage::disk('public')->exists($file->path)) {
@@ -192,11 +219,17 @@ class FileController extends Controller
         }
     }
 
-    public function generateTemporaryLink(File $file)
+    /**
+     * Generate a temporary link for a specific file.
+     *
+     * @param  \App\Models\File  $file
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function generateTemporaryLink(File $file): RedirectResponse
     {
         $token = Str::random(60);
-        $expiresTimestamp = time() + (24 * 3600); // Expiración en 24 horas (en segundos)
-        $expiresAt = date('Y-m-d H:i:s', $expiresTimestamp); // Formato para la base de datos
+        $expiresTimestamp = time() + (24 * 3600); // Expiration in 24 hours (in seconds)
+        $expiresAt = date('Y-m-d H:i:s', $expiresTimestamp); // Format for the database
 
         $temporaryLink = TemporaryLink::create([
             'file_id' => $file->id,
@@ -209,6 +242,12 @@ class FileController extends Controller
         return back()->with('success', __('Temporary link generated: ') . $temporaryLinkUrl);
     }
 
+    /**
+     * Access a file via a temporary link.
+     *
+     * @param  string  $token
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\RedirectResponse
+     */
     public function accessTemporaryLink(string $token)
     {
         $temporaryLink = TemporaryLink::where('token', $token)->firstOrFail();

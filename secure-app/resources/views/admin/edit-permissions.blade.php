@@ -26,14 +26,6 @@
                         <!-- User Info Section -->
                         <h3 class="text-lg font-semibold mb-4">{{ __('Editing Permissions for: ') }}{{ $user->name }}</h3>
 
-                        <div class="flex items-center space-x-4 mb-6">
-                            <img src="{{ asset('resources/img/user.jpg') }}" alt="Imagen de usuario" class="rounded-full w-20 h-20 object-cover">
-                            <div>
-                                <p><strong>{{ __('Email:') }}</strong> {{ $user->email }}</p>
-                                <p><strong>{{ __('User Type:') }}</strong> {{ $user->user_type }}</p>
-                            </div>
-                        </div>
-
                         <!-- Folder Permissions Section -->
                         <h3 class="text-lg font-semibold mb-4">{{ __('Folder Permissions') }}</h3>
                         <form method="POST" action="{{ route('admin.users.update-permissions', $user) }}">

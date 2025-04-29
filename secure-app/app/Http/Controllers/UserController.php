@@ -14,23 +14,30 @@ use Illuminate\Http\Request;
 class UserController extends Controller
 {
     /**
-     * Display a listing of the users.
+     * Display a listing of the users for administrators.
+     *
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
      */
     public function index(): View|RedirectResponse
     {
         if (Auth::check() && Auth::user()->user_type === 'administrator') {
-            $users = User::paginate(10); // Usa paginación para no cargar todos los usuarios a la vez
+            $users = User::paginate(10);
             return view('admin.users', compact('users'));
         }
 
         return redirect()->route('home')->with('error', 'Unauthorized access.');
     }
 
+    /**
+     * Display the form for editing user permissions for a specific user.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
     public function editPermissions(User $user): View|RedirectResponse
     {
         if (Auth::check() && Auth::user()->user_type === 'administrator') {
             $folders = Folder::all();
-
             $userPermissions = Permission::where('user_id', $user->id)
                 ->whereNotNull('folder_id')
                 ->pluck('folder_id')
@@ -42,6 +49,13 @@ class UserController extends Controller
         return redirect()->route('home')->with('error', 'Unauthorized access.');
     }
 
+    /**
+     * Update the permissions for a specific user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function updatePermissions(Request $request, User $user): RedirectResponse
     {
         if (Auth::check() && Auth::user()->user_type === 'administrator') {
@@ -65,20 +79,21 @@ class UserController extends Controller
         return redirect()->route('home')->with('error', 'Unauthorized access.');
     }
 
+    /**
+     * Delete a specific user.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function destroy(User $user): RedirectResponse
     {
         if (Auth::check() && Auth::user()->user_type === 'administrator') {
-            // Evitar que un administrador se elimine a sí mismo (opcional pero recomendado)
             if ($user->id === Auth::id()) {
                 return back()->with('error', 'You cannot delete your own account.');
             }
 
-            // Eliminar permisos asociados al usuario
             Permission::where('user_id', $user->id)->delete();
-
             $user->delete();
-
-            // Limpiar la contraseña temporal de la sesión si existe
             session()->forget('temporary_user_password_' . $user->id);
 
             return redirect()->route('admin.users')->with('success', 'User successfully deleted.');
@@ -87,7 +102,13 @@ class UserController extends Controller
         return redirect()->route('home')->with('error', 'Unauthorized access.');
     }
 
-    public function show(User $user)
+    /**
+     * Display the information for a specific user.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\View\View
+     */
+    public function show(User $user): View
     {
         return view('admin.show-info', compact('user'));
     }

@@ -2,11 +2,9 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Model; 
 
 class User extends Authenticatable
 {
@@ -22,7 +20,7 @@ class User extends Authenticatable
         'email',
         'password',
         'user_type',
-        'profile_image_path', // Agregado el campo profile_image_path
+        'profile_image_path',
     ];
 
     /**
@@ -48,7 +46,12 @@ class User extends Authenticatable
         ];
     }
 
-    public function isAdmin()
+    /**
+     * Check if the user has administrator privileges.
+     *
+     * @return bool
+     */
+    public function isAdmin(): bool
     {
         return $this->user_type === 'administrator';
     }

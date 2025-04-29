@@ -23,7 +23,7 @@ class FolderController extends Controller
      *
      * @return \Illuminate\Contracts\View\View
      */
-    public function index()
+    public function index(): View
     {
         $user = Auth::user();
         $folders = collect();
@@ -48,7 +48,7 @@ class FolderController extends Controller
      *
      * @return \Illuminate\Contracts\View\View
      */
-    public function create()
+    public function create(): View
     {
         $user = Auth::user();
         if ($user && $user->user_type === 'administrator') {
@@ -62,10 +62,10 @@ class FolderController extends Controller
      * Store a newly created resource (folder) in storage.
      * Creates a new folder and handles file uploads for clients during creation.
      *
-     * @param Request $request
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'name' => 'required|string|max:255', // Validate folder name
@@ -102,10 +102,10 @@ class FolderController extends Controller
      * Display the specified resource (folder and its files).
      * Shows the files within a specific folder based on user permissions.
      *
-     * @param Folder $folder
+     * @param  \App\Models\Folder  $folder
      * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
      */
-    public function show(Folder $folder)
+    public function show(Folder $folder): View|RedirectResponse
     {
         $user = Auth::user();
 
@@ -133,10 +133,10 @@ class FolderController extends Controller
      * Display the files within a specific folder for clients (alternative to show).
      * Ensures the client has permission to view the folder's files.
      *
-     * @param Folder $folder
+     * @param  \App\Models\Folder  $folder
      * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
      */
-    public function files(Folder $folder)
+    public function files(Folder $folder): View|RedirectResponse
     {
         $user = Auth::user();
 
@@ -160,10 +160,10 @@ class FolderController extends Controller
      * Show the form for editing the specified resource (folder).
      * Displays the appropriate edit form based on user type.
      *
-     * @param Folder $folder
+     * @param  \App\Models\Folder  $folder
      * @return \Illuminate\Contracts\View\View
      */
-    public function edit(Folder $folder)
+    public function edit(Folder $folder): View
     {
         $user = Auth::user();
         if ($user && $user->user_type === 'administrator') {
@@ -177,11 +177,11 @@ class FolderController extends Controller
      * Update the specified resource (folder) in storage.
      * Updates the folder name.
      *
-     * @param Request $request
-     * @param Folder $folder
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Folder  $folder
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function update(Request $request, Folder $folder)
+    public function update(Request $request, Folder $folder): RedirectResponse
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -203,10 +203,10 @@ class FolderController extends Controller
      * Remove the specified resource (folder) from storage.
      * Deletes the folder and its associated files from storage.
      *
-     * @param Folder $folder
+     * @param  \App\Models\Folder  $folder
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(Folder $folder)
+    public function destroy(Folder $folder): RedirectResponse
     {
         $user = Auth::user();
 
@@ -214,28 +214,28 @@ class FolderController extends Controller
             abort(403, __('Unauthorized action.'));
         }
 
-        // 1. Eliminar primero los permisos asociados a esta carpeta
+        // Delete associated permissions first
         \App\Models\Permission::where('folder_id', $folder->id)->delete();
 
-        // Obtener todos los archivos asociados a esta carpeta
+        // Get all files associated with this folder
         $filesToDelete = File::where('folder_id', $folder->id)->get();
 
-        // Eliminar los archivos del storage y de la base de datos
+        // Delete the files from storage and the database
         foreach ($filesToDelete as $file) {
             $filePathInStorage = str_replace(Storage::url(''), '', $file->path);
             if (Storage::disk('public')->exists($filePathInStorage)) {
                 Storage::disk('public')->delete($filePathInStorage);
             }
-            $file->delete(); // Eliminar el registro del archivo de la base de datos
+            $file->delete(); // Delete the file record from the database
         }
 
-        // Eliminar la subcarpeta de uploads correspondiente a esta carpeta
+        // Delete the corresponding uploads subfolder
         $folderPathInStorage = 'uploads/' . $folder->id;
         if (Storage::disk('public')->exists($folderPathInStorage)) {
             Storage::disk('public')->deleteDirectory($folderPathInStorage);
         }
 
-        // Eliminar la carpeta de la base de datos
+        // Delete the folder from the database
         $folder->delete();
 
         return redirect()->route('admin.folders.index')->with('success', __('Folder deleted successfully.'));
@@ -244,10 +244,10 @@ class FolderController extends Controller
     /**
      * Check if a folder in storage (within uploads) is empty and delete it.
      *
-     * @param int $folderId
+     * @param  int  $folderId
      * @return void
      */
-    public function deleteEmptyStorageFolder(int $folderId)
+    public function deleteEmptyStorageFolder(int $folderId): void
     {
         $folderPathInStorage = 'uploads/' . $folderId;
         if (Storage::disk('public')->exists($folderPathInStorage) && empty(Storage::disk('public')->files($folderPathInStorage))) {

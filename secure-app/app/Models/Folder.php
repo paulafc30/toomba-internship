@@ -17,8 +17,7 @@ class Folder extends Model
      */
     protected $fillable = [
         'name',
-        'user_id', 
-        
+        'user_id',
     ];
 
     /**
@@ -31,10 +30,13 @@ class Folder extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function editFolder(Folder $folder)
+    /**
+     * Define the relationship with the File model (if folders have many files).
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function files()
     {
-        return view('admin.folders.edit-folder', compact('folder'));
+        return $this->hasMany(File::class);
     }
-
-
 }
