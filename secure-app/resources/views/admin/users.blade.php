@@ -28,7 +28,7 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-100">
                                 <tr>
-                   
+
                                     <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Name') }}</th>
                                     <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Email') }}</th>
                                     <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('User Type') }}</th>
@@ -39,8 +39,12 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @foreach ($users as $user)
                                 <tr class="hover:bg-gray-50">
-                              
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $user->name }}</td>
+
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                        <a href="{{ route('admin.users.show', $user->id) }}" class="text-blue-500 hover:text-blue-700">
+                                            {{ $user->name }}
+                                        </a>
+                                    </td>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ $user->email }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ $user->user_type }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">

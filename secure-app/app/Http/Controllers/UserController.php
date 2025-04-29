@@ -86,4 +86,9 @@ class UserController extends Controller
 
         return redirect()->route('home')->with('error', 'Unauthorized access.');
     }
+
+    public function show(User $user)
+    {
+        return view('admin.show-info', compact('user'));
+    }
 }

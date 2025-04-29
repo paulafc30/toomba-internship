@@ -22,6 +22,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.delete');
         Route::get('/users/{user}/edit-permissions', [UserController::class, 'editPermissions'])->name('users.edit-permissions');
         Route::put('/users/{user}/update-permissions', [UserController::class, 'updatePermissions'])->name('users.update-permissions');
+        Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
 
         // Folder management routes
         Route::resource('/folders', FolderController::class)->except(['show']);
@@ -54,12 +55,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/temporary-link/upload', [TemporaryLinkController::class, 'storeUploadLink'])
         ->name('admin.temporary-link.store-upload');
     Route::get('/upload/{token}', [TemporaryLinkController::class, 'showTemporaryUploadForm'])->name('temporary-upload.form');
+    
 });
 
 // Routes outside the authentication middleware and prefixes (keep these if needed)
 Route::get('/admin/files', [FileController::class, 'loadView'])->name('admin.files');
 Route::post('/upload', [FileController::class, 'uploadStandalone'])->name('upload.standalone');
-Route::get('/download/{file}', [FileController::class, 'dowloadFile'])->name('download');
+//Route::get('/download/{file}', [FileController::class, 'dowloadFile'])->name('download');
+Route::get('/files/{file}/download', [FileController::class, 'dowloadFile'])->name('files.download');
 Route::get('/files', [FileController::class, 'showAllFilesView'])->name('files.view');
 Route::delete('/files/{filename}', [FileController::class, 'destroyStandalone'])->name('files.destroy.standalone');
 

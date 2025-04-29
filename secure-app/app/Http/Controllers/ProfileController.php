@@ -7,7 +7,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use App\Models\User;
 
 class ProfileController extends Controller
 {
@@ -22,23 +24,48 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update the user's profile information.
+     * Actualiza la información del perfil del usuario.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = Auth::user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'profile_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'], // Añade validación para la imagen
+        ]);
+
+        $user->name = $request->name;
+        $user->email = $request->email;
+
+        // Actualiza la imagen de perfil si se proporciona
+        if ($request->hasFile('profile_image')) {
+            $this->updateProfileImage($request, $user); // Llama a la función separada
         }
 
-        $request->user()->save();
+        //$user->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
+    private function updateProfileImage(Request $request, User $user): void
+    {
+        $image = $request->file('profile_image');
+        $filename = time() . '.' . $image->getClientOriginalExtension();
+        $path = Storage::putFileAs('public/images', $image, $filename);
+
+        // Elimina la imagen anterior si existe
+        if ($user->profile_image_path) {
+            Storage::delete('public/' . $user->profile_image_path);
+        }
+
+        $user->profile_image_path = 'images/' . $filename;
+        $user->save();
+    }
+
     /**
-     * Delete the user's account.
+     * Elimina la cuenta del usuario.
      */
     public function destroy(Request $request): RedirectResponse
     {
@@ -47,6 +74,11 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Elimina la imagen de perfil si existe antes de eliminar el usuario
+        if ($user->profile_image_path) {
+            Storage::delete('public/' . $user->profile_image_path);
+        }
 
         Auth::logout();
 

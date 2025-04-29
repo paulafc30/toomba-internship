@@ -58,7 +58,7 @@
                                     {{ $file['name'] }}
                                     <div>
                                         <a href="{{ Storage::url($file['path']) }}" target="_blank" class="btn btn-sm btn-info">{{ __('View') }}</a>
-                                        <a href="{{ route('download', $file['id']) }}" class="btn btn-sm btn-success ml-2">{{ __('Download') }}</a>
+                                        <a href="{{ route('files.download', $file->id) }}" class="btn btn-sm btn-success ml-2">{{ __('Download') }}</a>
 
                                         @if ($file['folder_id'] === null)
                                         <form action="{{ route('files.destroy.standalone', $file['name']) }}" method="POST" class="d-inline ml-2">

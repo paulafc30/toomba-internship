@@ -177,13 +177,14 @@ class FileController extends Controller
     public function dowloadFile(File $file)
     {
         $path = Storage::path($file->path);
-
+    
         if (FileFacade::exists($path)) {
             return response()->download($path, $file->name);
         } else {
             return back()->with('error', __('File not found.'));
         }
     }
+    
     public function generateTemporaryLink(File $file)
     {
         $token = Str::random(60);
