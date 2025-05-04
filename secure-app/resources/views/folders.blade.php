@@ -8,6 +8,16 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sidebar-image {
+            background-image: url('https://static.vecteezy.com/system/resources/previews/000/440/965/non_2x/vector-folder-icon.jpg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            min-height: 150px;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 
 <body>
@@ -21,12 +31,18 @@
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+
                     <div class="p-6 text-gray-900">
                         <div class="flex space-x-6">
                             <div class="w-1/4 p-4 rounded-lg shadow-md">
+                                <div class="sidebar-image">
+
+                                </div>
+
                                 @if (Auth::check() && Auth::user()->user_type === 'administrator')
                                 <a href="{{ route('admin.folders.create') }}" class="bg-green-500 hover:bg-green-700 font-bold py-2 px-4 rounded text-white w-full text-center">{{ __('Create New Folder') }}</a>
                                 @endif
+                                
                             </div>
 
                             <!-- Folder List Section -->

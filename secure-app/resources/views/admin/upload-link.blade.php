@@ -11,26 +11,26 @@
 </head>
 
 <body>
-    <div class="container py-5">
-        <p>Hello <strong>{{ $recipientName }}</strong>,</p>
+    <x-mail::message>
+        # Hello {{ $name }}!
 
-        <p>Here's your secure file upload link:</p>
+        A temporary link has been created for you to upload files.
 
-        <p>
-            <a href="{{ $uploadLink }}" class="text-blue-500" target="_blank">{{ $uploadLink }}</a>
-        </p>
+        Click the button below to access the upload form:
 
-        <p>
-            This link will expire on 
-            <strong>
-                {{ $temporaryLink->expires_at 
-                    ? (new DateTime($temporaryLink->expires_at, new DateTimeZone('Europe/Madrid')))->format('Y-m-d H:i:s') 
-                    : 'N/A' }}
-            </strong>.
-        </p>
+        <x-mail::button :url="$uploadLink">
+            Upload Files
+        </x-mail::button>
 
-        <p>Thank you!</p>
-    </div>
+        @if ($password)
+        If prompted, this is your temporary password: **{{ $password }}**
+        @endif
+
+        This link will expire on {{ $expirationDate }}.
+
+        Thanks,
+        {{ config('app.name') }}
+    </x-mail::message>
 </body>
 
 </html>

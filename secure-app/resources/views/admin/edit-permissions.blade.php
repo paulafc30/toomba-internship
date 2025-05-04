@@ -34,15 +34,29 @@
 
                             <div class="space-y-4">
                                 @foreach ($folders as $folder)
-                                <div class="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        id="folder_{{ $folder->id }}"
-                                        name="folders[]"
-                                        value="{{ $folder->id }}"
-                                        class="form-checkbox h-5 w-5 text-blue-600"
-                                        {{ in_array($folder->id, $userPermissions) ? 'checked' : '' }}>
-                                    <label for="folder_{{ $folder->id }}" class="ml-2 text-gray-700">{{ $folder->name }}</label>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <label for="folder_{{ $folder->id }}" class="text-gray-700">{{ $folder->name }}</label>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <input
+                                            type="radio"
+                                            id="view_{{ $folder->id }}"
+                                            name="permissions[{{ $folder->id }}]"
+                                            value="view"
+                                            class="form-radio h-5 w-5 text-blue-600"
+                                            {{ isset($userPermissions[$folder->id]) && $userPermissions[$folder->id] === 'view' ? 'checked' : ( !isset($userPermissions[$folder->id]) ? 'checked' : '' ) }}>
+                                        <label for="view_{{ $folder->id }}" class="text-gray-700">View</label>
+
+                                        <input
+                                            type="radio"
+                                            id="edit_{{ $folder->id }}"
+                                            name="permissions[{{ $folder->id }}]"
+                                            value="edit"
+                                            class="form-radio h-5 w-5 text-blue-600"
+                                            {{ isset($userPermissions[$folder->id]) && $userPermissions[$folder->id] === 'edit' ? 'checked' : '' }}>
+                                        <label for="edit_{{ $folder->id }}" class="text-gray-700">Edit</label>
+                                    </div>
                                 </div>
                                 @endforeach
                             </div>
@@ -54,7 +68,7 @@
                             </div>
                         </form>
 
-                        <!-- Back Button Section -->
+                        <!-- Back Button Section 
                         <div class="flex items-center justify-end mt-4">
                             <<x-primary-button
                                 onclick="window.location='{{ route('admin.users') }}';"
@@ -63,8 +77,8 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                 </svg>
                                 {{ __('Back to User List') }}
-                            </x-primary-button>
-                        </div>
+                                </x-primary-button>
+                        </div>-->
 
 
                     </div>

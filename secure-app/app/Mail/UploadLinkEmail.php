@@ -3,33 +3,41 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\TemporaryLink; // Asegúrate de importar el modelo TemporaryLink
+use App\Models\TemporaryLink;
 
 class UploadLinkEmail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public $uploadLink;
-    public $recipientName;
+    public $name;
     public $temporaryLink;
+    public $password;
+    public $expirationDate; // Nueva propiedad para la fecha formateada
 
     /**
      * Create a new message instance.
      *
      * @param  string  $uploadLink
-     * @param  string  $recipientName
-     * @param  TemporaryLink  $temporaryLink 
+     * @param  string  $name
+     * @param  \App\Models\TemporaryLink  $temporaryLink
+     * @param  string|null  $password
      * @return void
      */
-    public function __construct(string $uploadLink, string $recipientName, TemporaryLink $temporaryLink)
+    public function __construct(string $uploadLink, string $name, TemporaryLink $temporaryLink, ?string $password = null)
     {
         $this->uploadLink = $uploadLink;
-        $this->recipientName = $recipientName;
-        $this->temporaryLink = $temporaryLink; 
+        $this->name = $name;
+        $this->temporaryLink = $temporaryLink;
+        $this->password = $password;
+        $this->expirationDate = $temporaryLink->expires_at instanceof \DateTimeInterface
+            ? $temporaryLink->expires_at->format('Y-m-d H:i')
+            : (string) $temporaryLink->expires_at; // Manejo por si acaso no es un objeto DateTime
     }
 
     /**
@@ -48,11 +56,12 @@ class UploadLinkEmail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'admin.upload-link',
+            markdown: 'admin.upload-link',
             with: [
                 'uploadLink' => $this->uploadLink,
-                'recipientName' => $this->recipientName,
-                'temporaryLink' => $this->temporaryLink,
+                'name' => $this->name,
+                'password' => $this->password,
+                'expirationDate' => $this->expirationDate, // Pasar la fecha formateada
             ],
         );
     }

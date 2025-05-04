@@ -22,7 +22,7 @@ class Permission extends Model
      *
      * @var bool
      */
-    public $timestamps = false;
+    // public $timestamps = false; // ¡Esta línea estaba impidiendo que se gestionaran las marcas de tiempo!
 
     /**
      * The attributes that are mass assignable.

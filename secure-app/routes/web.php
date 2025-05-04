@@ -55,6 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/temporary-link/upload', [TemporaryLinkController::class, 'storeUploadLink'])
         ->name('admin.temporary-link.store-upload');
     Route::get('/upload/{token}', [TemporaryLinkController::class, 'showTemporaryUploadForm'])->name('temporary-upload.form');
+    Route::get('/delete-expired-temporary-users', [TemporaryLinkController::class, 'deleteExpiredTemporaryUsers'])->name('delete.expired.users');
     
 });
 

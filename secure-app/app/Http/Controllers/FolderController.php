@@ -105,6 +105,8 @@ class FolderController extends Controller
      * @param  \App\Models\Folder  $folder
      * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
      */
+
+
     public function show(Folder $folder): View|RedirectResponse
     {
         $user = Auth::user();
@@ -113,20 +115,19 @@ class FolderController extends Controller
             abort(403, __('Unauthorized.'));
         }
 
-        if ($user->user_type === 'administrator') {
-            $files = $folder->files;
-            return view('admin.files', compact('files', 'folder'));
-        } else {
-            $hasPermission = Permission::where('user_id', $user->id)
+        $userPermission = null;
+        if ($user->user_type !== 'administrator') {
+            $userPermission = Permission::where('user_id', $user->id)
                 ->where('folder_id', $folder->id)
-                ->exists();
+                ->value('permission_type');
 
-            if (!$hasPermission) {
+            if (!$userPermission && $user->user_type !== 'administrator') {
                 abort(403, __('Unauthorized access to this folder.'));
             }
-            $files = File::where('folder_id', $folder->id)->get();
-            return view('client.files', compact('folder', 'files'));
         }
+
+        $files = File::where('folder_id', $folder->id)->get();
+        return view('files', compact('files', 'folder', 'userPermission'));
     }
 
     /**
@@ -210,7 +211,7 @@ class FolderController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->user_type !== 'administrator' ) {
+        if ($user->user_type !== 'administrator') {
             abort(403, __('Unauthorized action.'));
         }
 

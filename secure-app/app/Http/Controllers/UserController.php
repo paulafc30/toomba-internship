@@ -40,7 +40,7 @@ class UserController extends Controller
             $folders = Folder::all();
             $userPermissions = Permission::where('user_id', $user->id)
                 ->whereNotNull('folder_id')
-                ->pluck('folder_id')
+                ->pluck('permission_type', 'folder_id')
                 ->toArray();
 
             return view('admin.edit-permissions', compact('user', 'folders', 'userPermissions'));
@@ -63,12 +63,15 @@ class UserController extends Controller
                 ->whereNotNull('folder_id')
                 ->delete();
 
-            if ($request->has('folders')) {
-                $folderIds = $request->input('folders');
-                foreach ($folderIds as $folderId) {
+            if ($request->has('permissions')) {
+                $permissionsData = $request->input('permissions');
+                foreach ($permissionsData as $folderId => $permissionType) {
                     Permission::create([
                         'user_id' => $user->id,
                         'folder_id' => $folderId,
+                        'permission_type' => $permissionType,
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
             }

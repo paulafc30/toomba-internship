@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Mail\UploadLinkEmail;
 use DateTime;
 use DateTimeZone;
+use Illuminate\Support\Facades\Auth;
 
 class TemporaryLinkController extends Controller
 {
@@ -42,16 +43,18 @@ class TemporaryLinkController extends Controller
      */
     public function storeUploadLink(Request $request)
     {
-         // Validate the form data
+        // Validate the form data
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users',
             'password' => 'nullable|string|min:6',
-            'expire_date' => 'nullable|date|after:now',
+            'expire_date' => 'nullable|date',
             'expire_time' => 'nullable|date_format:H:i',
         ]);
 
         $expiresAtDatabase = null;
+        $nowWithFiveMinutes = new DateTime('now', new DateTimeZone(config('app.timezone')));
+        $nowWithFiveMinutes->modify('+5 minutes');
 
         if ($request->filled('expire_date')) {
             $expireDate = $request->input('expire_date');
@@ -62,9 +65,8 @@ class TemporaryLinkController extends Controller
                 $timezone = new DateTimeZone(config('app.timezone'));
                 $expiresAt = new DateTime($dateTimeString, $timezone);
 
-                $now = new DateTime('now', $timezone);
-                if ($expiresAt <= $now) {
-                    return back()->withErrors(['expire_date' => __('The expire date and time must be after the current time.')]);
+                if ($expiresAt <= $nowWithFiveMinutes) {
+                    return back()->withErrors(['expire_date' => __('The expire date and time must be at least 5 minutes in the future.')]);
                 }
                 $expiresAtDatabase = $expiresAt->format('Y-m-d H:i:s');
             } catch (\Exception $e) {
@@ -86,6 +88,7 @@ class TemporaryLinkController extends Controller
         }
 
         $generatedPassword = null;
+        $hashedPassword = null;
         $userPassword = $request->input('password');
 
         if (!$userPassword) {
@@ -98,17 +101,17 @@ class TemporaryLinkController extends Controller
         // Generate a unique token for the temporary link
         $token = Str::random(60);
 
-         // Create the new temporary user
+        // Create the new temporary link
         $temporaryLink = TemporaryLink::create([
             'token' => $token,
             'name' => $request->name,
             'email' => $request->email,
-            'password' => $userPassword ? bcrypt($userPassword) : $hashedPassword, 
+            'password' => $hashedPassword, // Store the hashed password directly
             'expires_at' => $expiresAtDatabase,
-            // Track who created the link:
-            // 'user_id' => Auth::id(),
+            'user_id' => Auth::id(), // Track who created the link
         ]);
 
+        // Create the temporary user
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -116,16 +119,16 @@ class TemporaryLinkController extends Controller
             'user_type' => 'temporary',
         ]);
 
-        // Store the plain password in session if generated
+        // Store the plain password in session if generated for email
         if ($generatedPassword) {
-            session(['temporary_user_password_' . $user->id => $generatedPassword]);
+            session(['temporary_user_password' => $generatedPassword]);
         }
 
         // Generate the temporary upload URL
         $uploadLink = route('temporary-upload.form', ['token' => $token]);
 
-        // Send the email with the upload link
-        Mail::to($request->email)->send(new UploadLinkEmail($uploadLink, $request->name, $temporaryLink));
+        // Send the email with the upload link and password if generated
+        Mail::to($request->email)->send(new UploadLinkEmail($uploadLink, $request->name, $temporaryLink, $generatedPassword));
 
         // Redirect with a success message
         return redirect()->route('admin.temporary-link.index')->with('success', __('Temporary upload link and temporary user created successfully and sent to ') . $request->email);
@@ -137,11 +140,15 @@ class TemporaryLinkController extends Controller
      * @param  \App\Models\TemporaryLink  $temporaryLink
      * @return \Illuminate\Http\RedirectResponse
      */
-
     public function destroy(TemporaryLink $temporaryLink)
     {
+        // Optionally, delete the associated temporary user
+        User::where('email', $temporaryLink->email)
+            ->where('user_type', 'temporary')
+            ->delete();
+
         $temporaryLink->delete();
-        return back()->with('success', __('Temporary link deleted successfully.'));
+        return back()->with('success', __('Temporary link and associated user deleted successfully.'));
     }
 
     /**
@@ -150,13 +157,12 @@ class TemporaryLinkController extends Controller
      * @param  string  $token
      * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
      */
-
     public function showTemporaryUploadForm(string $token)
     {
         $temporaryLink = TemporaryLink::where('token', $token)->firstOrFail();
 
         $now = new DateTime('now', new DateTimeZone(config('app.timezone')));
-        $expiresAt = new DateTime($temporaryLink->expires_at, new DateTimeZone('UTC')); 
+        $expiresAt = new DateTime($temporaryLink->expires_at, new DateTimeZone('UTC'));
 
         if ($expiresAt <= $now) {
             $temporaryUser = User::where('email', $temporaryLink->email)->where('user_type', 'temporary')->first();
@@ -165,9 +171,10 @@ class TemporaryLinkController extends Controller
                 \App\Models\Permission::where('user_id', $temporaryUser->id)
                     ->whereNotNull('folder_id')
                     ->delete();
+                $temporaryUser->delete(); // Delete the temporary user upon link expiration
             }
 
-            return redirect()->route('welcome')->with('error', __('This temporary link has expired and access permissions have been revoked.'));
+            return redirect()->route('welcome')->with('error', __('This temporary link has expired and associated user has been removed.'));
         }
 
         return view('admin.temporary-link.upload-form', ['token' => $token, 'temporaryLink' => $temporaryLink]);
