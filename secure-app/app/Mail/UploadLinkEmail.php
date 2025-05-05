@@ -18,7 +18,7 @@ class UploadLinkEmail extends Mailable
     public $name;
     public $temporaryLink;
     public $password;
-    public $expirationDate; // Nueva propiedad para la fecha formateada
+    public $expirationDate; 
 
     /**
      * Create a new message instance.

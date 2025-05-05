@@ -42,7 +42,7 @@ class DeleteExpiredTemporaryUsers extends Command
                 ->first();
 
             if ($temporaryUser) {
-                // Eliminar permisos asociados (si los hay)
+                // Eliminar permisos asociados 
                 \App\Models\Permission::where('user_id', $temporaryUser->id)
                     ->whereNotNull('folder_id')
                     ->delete();
@@ -51,7 +51,7 @@ class DeleteExpiredTemporaryUsers extends Command
                 $temporaryUser->delete();
                 $deletedUserCount++;
 
-                // Opcional: Eliminar el enlace temporal expirado
+                // Eliminar el enlace temporal expirado
                 $link->delete();
             }
         }
