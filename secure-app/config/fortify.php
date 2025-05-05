@@ -143,6 +143,7 @@ return [
     |
     */
 
+   
     'features' => [
         Features::registration(),
         Features::resetPasswords(),
@@ -154,6 +155,11 @@ return [
             'confirmPassword' => true,
             // 'window' => 0,
         ]),
+        // Puedes descomentar las siguientes líneas SI habilitaste estas características durante la instalación de Jetstream
+        // Features::profilePhotos(),
+        // Features::api(),
+        // Features::teams(),
     ],
+
 
 ];
