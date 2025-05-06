@@ -19,6 +19,62 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 - [Robust background job processing](https://laravel.com/docs/queues).
 - [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
 
+# Getting Started with the Project
+
+Follow these steps to get the project up and running:
+
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository_url>
+    ```
+
+2.  **Copy the environment file:**
+    ```bash
+    cp /var/www/toomba-internship/secure-app/.env.example /var/www/toomba-internship/secure-app/.env
+    ```
+
+3.  **Composer install:**
+    ```bash
+    docker run --rm --interactive --tty --volume $PWD:/app composer install
+    ```
+
+4.  **Start the Sail environment:**
+    ```bash
+    ./vendor/bin/sail up
+    ```
+
+    This command will build and start the Docker containers defined in the `docker-compose.yml` file.
+
+    Wait till docker container are up and running. Open another terminal and run the following command to access the application:
+
+5.  **Generate the application key:**
+    ```bash
+    ./vendor/bin/sail artisan key:generate
+    ```
+
+6.  **Run migrations and seeders:**
+    ```bash
+    ./vendor/bin/sail artisan migrate --seed
+    ```
+
+    This will create the database tables and populate them with initial data.
+
+7.  **Install node packages:**
+    ```bash
+    ./vendor/bin/sail npm install
+    ```
+8.  **Vite build:**
+    ```bash
+    ./vendor/bin/sail npm run dev
+    ```
+
+    This will compile the frontend css and js
+
+9.  **Access the application:**
+
+    The application should now be accessible in your browser at `http://localhost`.
+    The mail catcher should now be accessible in your browser at `http://localhost:8025`.
+
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
 ## Learning Laravel
