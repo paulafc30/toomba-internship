@@ -4,19 +4,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Files</title>
+    <title>Toomba Secure</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+
     <style>
         .sidebar-image {
             background-image: url('https://cdn-icons-png.freepik.com/512/6700/6700085.png');
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
-            min-height: 150px;
+            min-height: 100px;
             margin-bottom: 1rem;
         }
+
+        /* Mejora la presentación de los botones dentro de cada archivo */
+        .file-actions>* {
+            margin-left: 0.5rem;
+        }
+
+        /* Oculta el input file nativo */
+        #fileInput {
+            display: none;
+        }
+
+        /* Personaliza el botón de selección */
+        .file-label {
+            background-color: #f8f9fa;
+            border: 1px solid #ced4da;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-label:hover {
+            background-color: #e2e6ea;
+        }
+
+        /* Botón de subir */
+        .upload-btn {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            border-radius: 0.375rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            background-color: #0b5ed7;
+        }
+    </style>
+
     </style>
 </head>
 
@@ -52,14 +94,28 @@
 
                         <form action="{{ route('admin.folders.files.upload', $folder->id) }}" method="POST" enctype="multipart/form-data">
                             @csrf
-                            <div class="flex flex-col sm:flex-row items-stretch gap-2">
-                                <input type="file" name="file" id="fileInput" class="hidden" required onchange="updateFileName()">
-                                <label for="fileInput" class="cursor-pointer inline-block px-4 py-2 border border-gray-300 rounded-md bg-gray-50 hover:bg-gray-100 text-sm">
+                            <div class="flex flex-col space-y-3 w-full max-w-md">
+                                <!-- Botón para seleccionar archivo -->
+                                <label for="fileInput"
+                                    class="cursor-pointer px-4 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-center hover:bg-gray-200">
                                     {{ __('Select files') }}
                                 </label>
-                                <input type="text" class="flex-1 border border-gray-300 rounded-md px-4 py-2 text-sm" id="fileName" placeholder="{{ __('No file selected') }}" readonly>
-                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">{{ __('Upload File') }}</button>
+                                <input type="file" name="file" id="fileInput" class="hidden" required onchange="updateFileName()">
+
+                                <!-- Nombre del archivo seleccionado -->
+                                <input type="text" id="fileName" readonly
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-md text-sm"
+                                    placeholder="{{ __('No file selected') }}">
+
+                                <!-- Botón de subir archivo -->
+                                <button type="submit"
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition">
+                                    {{ __('Upload File') }}
+                                </button>
                             </div>
+
+
+
                         </form>
                     </div>
                     @endif
@@ -72,7 +128,7 @@
                         @foreach($files as $file)
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             {{ $file['name'] }}
-                            <div>
+                            <div class="file-actions d-flex align-items-center">
                                 <a href="{{ Storage::url($file['path']) }}" target="_blank" class="btn btn-sm btn-info">{{ __('View') }}</a>
                                 @if ($folder)
                                 @if ($userPermission === 'edit')
@@ -80,7 +136,7 @@
                                 <form action="{{ route('admin.folders.files.destroy', ['folder' => $file['folder_id'], 'file' => $file['id']]) }}" method="POST" class="d-inline ml-2">
                                     @csrf
                                     @method('DELETE')
-                                    <<button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('{{ __('Are you sure you want to delete this file?') }}')">{{ __('Delete') }}</button>
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this file?')">{{ __('Delete') }}</button>
                                 </form>
                                 @elseif ($userPermission === 'view')
                                 <a href="{{ route('files.download', $file->id) }}" class="btn btn-sm btn-success ml-2">{{ __('Download') }}</a>
@@ -91,7 +147,7 @@
                                 <form action="{{ route('files.standalone.destroy', $file['name']) }}" method="POST" class="d-inline ml-2">
                                     @csrf
                                     @method('DELETE')
-                                    <<button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('{{ __('Are you sure you want to delete this file?') }}')">{{ __('Delete') }}</button>
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this file?')">{{ __('Delete') }}</button>
                                 </form>
                                 @else
                                 <a href="{{ route('files.download', $file->id) }}" class="btn btn-sm btn-success ml-2">{{ __('Download') }}</a>

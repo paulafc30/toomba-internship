@@ -2100,7 +2100,7 @@ namespace PHPSTORM_META {
 'password.update','logout','storage.local',);
         registerArgumentsSet('views', 
 'admin.create-folder','admin.create-upload','admin.edit-folder','admin.edit-permissions','admin.show-info',
-'admin.temporary-link','admin.upload-link','admin.users','auth.confirm-password','auth.forgot-password',
+'admin.temporary-link','admin.access-link','admin.users','auth.confirm-password','auth.forgot-password',
 'auth.login','auth.register','auth.reset-password','auth.verify-email','components.application-logo',
 'components.auth-session-status','components.danger-button','components.dropdown','components.dropdown-link','components.input-error',
 'components.input-label','components.modal','components.nav-link','components.primary-button','components.responsive-nav-link',

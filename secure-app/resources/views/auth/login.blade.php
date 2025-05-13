@@ -13,7 +13,9 @@
         <a href="{{ route('logout') }}">Cerrar Sesión</a>
     @else
         <a href="{{ route('google.login') }}">
-            <button>Iniciar Sesión con Google</button>
+             <x-primary-button class="ms-3">
+                      Iniciar Sesión con Google
+                    </x-primary-button>
         </a>
         <x-guest-layout>
             <x-auth-session-status class="mb-4" :status="session('status')" />

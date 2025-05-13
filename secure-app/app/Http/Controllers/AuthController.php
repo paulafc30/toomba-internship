@@ -25,7 +25,7 @@ class AuthController extends Controller
                     'name' => $googleUser->getName(),
                     'google_id' => $googleUser->getId(),
                     'avatar' => $googleUser->getAvatar(),
-                    'password' => bcrypt(uniqid()) // Contraseña aleatoria (no se usará)
+                    'password' => bcrypt(uniqid()) 
                 ]
             );
 

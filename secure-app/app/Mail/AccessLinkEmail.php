@@ -10,11 +10,11 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use App\Models\TemporaryLink;
 
-class UploadLinkEmail extends Mailable
+class AccessLinkEmail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $uploadLink;
+    public $accessLink;
     public $name;
     public $temporaryLink;
     public $password;
@@ -23,15 +23,15 @@ class UploadLinkEmail extends Mailable
     /**
      * Create a new message instance.
      *
-     * @param  string  $uploadLink
+     * @param  string  $accessLink
      * @param  string  $name
      * @param  \App\Models\TemporaryLink  $temporaryLink
      * @param  string|null  $password
      * @return void
      */
-    public function __construct(string $uploadLink, string $name, TemporaryLink $temporaryLink, ?string $password = null)
+    public function __construct(string $accessLink, string $name, TemporaryLink $temporaryLink, ?string $password = null)
     {
-        $this->uploadLink = $uploadLink;
+        $this->accessLink = $accessLink;
         $this->name = $name;
         $this->temporaryLink = $temporaryLink;
         $this->password = $password;
@@ -56,9 +56,9 @@ class UploadLinkEmail extends Mailable
     public function content(): Content
     {
         return new Content(
-            markdown: 'admin.upload-link',
+            markdown: 'admin.access-link',
             with: [
-                'uploadLink' => $this->uploadLink,
+                'accessLink' => $this->accessLink,
                 'name' => $this->name,
                 'password' => $this->password,
                 'expirationDate' => $this->expirationDate, // Pasar la fecha formateada

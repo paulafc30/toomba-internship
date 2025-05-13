@@ -32,11 +32,12 @@ class FolderController extends Controller
             $folders = Folder::paginate(10);
         } else {
             $userId = Auth::id();
-            $folderIds = Permission::where('user_id', $userId)
+            $permissions = Permission::where('user_id', $userId)
                 ->whereNotNull('folder_id')
+                ->where('permission_type', '!=', 'no-access') // Exclude 'no-access'
                 ->pluck('folder_id')
                 ->toArray();
-            $folders = Folder::whereIn('id', $folderIds)->paginate(10);
+            $folders = Folder::whereIn('id', $permissions)->paginate(10);
         }
 
         return view('folders', compact('folders', 'user'));
@@ -105,8 +106,6 @@ class FolderController extends Controller
      * @param  \App\Models\Folder  $folder
      * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
      */
-
-
     public function show(Folder $folder): View|RedirectResponse
     {
         $user = Auth::user();
@@ -121,7 +120,7 @@ class FolderController extends Controller
                 ->where('folder_id', $folder->id)
                 ->value('permission_type');
 
-            if (!$userPermission && $user->user_type !== 'administrator') {
+            if (!$userPermission || $userPermission === 'no-access') {
                 abort(403, __('Unauthorized access to this folder.'));
             }
         }
@@ -145,11 +144,11 @@ class FolderController extends Controller
             abort(403, __('Unauthorized.'));
         }
 
-        $hasPermission = Permission::where('user_id', $user->id)
+        $permission = Permission::where('user_id', $user->id)
             ->where('folder_id', $folder->id)
-            ->exists();
+            ->value('permission_type');
 
-        if (!$hasPermission) {
+        if (!$permission || $permission === 'no-access') {
             abort(403, __('Unauthorized access to this folder.'));
         }
 
@@ -216,7 +215,7 @@ class FolderController extends Controller
         }
 
         // Delete associated permissions first
-        \App\Models\Permission::where('folder_id', $folder->id)->delete();
+        Permission::where('folder_id', $folder->id)->delete();
 
         // Get all files associated with this folder
         $filesToDelete = File::where('folder_id', $folder->id)->get();

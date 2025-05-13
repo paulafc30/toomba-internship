@@ -76,7 +76,6 @@ Route::middleware('auth')->group(function () {
     // Acceso y generación de enlaces temporales (públicos firmados)
     Route::post('/files/{file}/generate-temporary-link', [FileController::class, 'generateTemporaryLink'])->name('files.generate-temporary-link');
     Route::get('/temporary-link/{token}', [FileController::class, 'accessTemporaryLink'])->name('temporary-link.access');
-    Route::get('/upload/{token}', [TemporaryLinkController::class, 'showTemporaryUploadForm'])->name('temporary-upload.form');
 
     // Tarea administrativa: eliminar usuarios temporales expirados
     Route::get('/delete-expired-temporary-users', [TemporaryLinkController::class, 'deleteExpiredTemporaryUsers'])->name('delete.expired.users');
