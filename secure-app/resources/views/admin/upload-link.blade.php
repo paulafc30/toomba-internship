@@ -1,36 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
+@component('mail::message')
+# ¡Hola {{ $name }}!
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your File Upload Link</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
+Se ha creado un enlace temporal para que subas archivos.
 
-<body>
-    <x-mail::message>
-        # Hello {{ $name }}!
+Haz clic en el botón de abajo para acceder al formulario de subida:
 
-        A temporary link has been created for you to upload files.
+@component('mail::button', ['url' => $uploadLink])
+Subir archivos
+@endcomponent
 
-        Click the button below to access the upload form:
+@if ($password)
+**Contraseña temporal:** {{ $password }}
+@endif
 
-        <x-mail::button :url="$uploadLink">
-            Upload Files
-        </x-mail::button>
+Este enlace expirará el {{ $expirationDate }}.
 
-        @if ($password)
-        If prompted, this is your temporary password: **{{ $password }}**
-        @endif
-
-        This link will expire on {{ $expirationDate }}.
-
-        Thanks,
-        {{ config('app.name') }}
-    </x-mail::message>
-</body>
-
-</html>
+Gracias,<br>
+{{ config('app.name') }}
+@endcomponent

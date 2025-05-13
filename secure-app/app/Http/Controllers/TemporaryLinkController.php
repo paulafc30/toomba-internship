@@ -2,181 +2,66 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TemporaryLink;
-use App\Models\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\URL;
+use Carbon\Carbon;
+use App\Models\TemporaryLink;
 use App\Mail\UploadLinkEmail;
-use DateTime;
-use DateTimeZone;
-use Illuminate\Support\Facades\Auth;
 
 class TemporaryLinkController extends Controller
 {
     /**
-     * Display a listing of all temporary links for administrators.
+     * Muestra el formulario de envío del enlace.
      */
-    public function index()
+    public function createUpload()
     {
-        $temporaryLinks = TemporaryLink::with('file.owner')->paginate(10);
-        return view('admin.temporary-link', compact('temporaryLinks'));
+        return view('admin.create-upload-link');
     }
 
     /**
-     * Show the form for creating a new temporary upload link.
-     *
-     * @return \Illuminate\Contracts\View\View|\Illuminate\Contracts\View\Factory
+     * Procesa el formulario y envía el correo con el enlace de subida.
      */
-    public function createUploadLink()
+    public function storeUpload(Request $request)
     {
-        return view('admin.temporary-link.create-upload');
-    }
-
-    /**
-     * Store a new temporary upload link in the database and create a temporary user.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function storeUploadLink(Request $request)
-    {
-        // Validate the form data
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users',
-            'password' => 'nullable|string|min:6',
+            'email' => 'required|email',
+            'password' => 'nullable|string|max:255',
             'expire_date' => 'nullable|date',
             'expire_time' => 'nullable|date_format:H:i',
         ]);
 
-        $expiresAtDatabase = null;
-        $nowWithFiveMinutes = new DateTime('now', new DateTimeZone(config('app.timezone')));
-        $nowWithFiveMinutes->modify('+5 minutes');
+        // Calcular la expiración
+        $expiration = now()->addDays(7); // Por defecto 7 días
 
         if ($request->filled('expire_date')) {
-            $expireDate = $request->input('expire_date');
-            $expireTime = $request->input('expire_time', '23:59');
-
-            try {
-                $dateTimeString = $expireDate . ' ' . $expireTime;
-                $timezone = new DateTimeZone(config('app.timezone'));
-                $expiresAt = new DateTime($dateTimeString, $timezone);
-
-                if ($expiresAt <= $nowWithFiveMinutes) {
-                    return back()->withErrors(['expire_date' => __('The expire date and time must be at least 5 minutes in the future.')]);
-                }
-                $expiresAtDatabase = $expiresAt->format('Y-m-d H:i:s');
-            } catch (\Exception $e) {
-                return back()->withErrors(['expire_date' => __('Invalid date or time format.')]);
-            }
-        } else {
-            $now = new DateTime('now', new DateTimeZone(config('app.timezone')));
-            $now->modify('+7 days');
-            $expiresAtDatabase = $now->format('Y-m-d H:i:s');
+            $date = Carbon::parse($request->expire_date);
+            $time = $request->filled('expire_time') ? $request->expire_time : '23:59';
+            $expiration = Carbon::parse($request->expire_date . ' ' . $time);
         }
 
-        // Check if a link with the same email and expiration already exists
-        $existingLink = TemporaryLink::where('email', $request->email)
-            ->where('expires_at', $expiresAtDatabase)
-            ->first();
-
-        if ($existingLink) {
-            return back()->withErrors(['email' => __('A temporary link with this email and expiration time already exists.')]);
-        }
-
-        $generatedPassword = null;
-        $hashedPassword = null;
-        $userPassword = $request->input('password');
-
-        if (!$userPassword) {
-            $generatedPassword = Str::random(16);
-            $hashedPassword = Hash::make($generatedPassword);
-        } else {
-            $hashedPassword = Hash::make($userPassword);
-        }
-
-        // Generate a unique token for the temporary link
-        $token = Str::random(60);
-
-        // Create the new temporary link
+        // Crear el enlace temporal
         $temporaryLink = TemporaryLink::create([
-            'token' => $token,
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $hashedPassword, // Store the hashed password directly
-            'expires_at' => $expiresAtDatabase,
-            'user_id' => Auth::id(), // Track who created the link
+            'token' => Str::random(32),
+            'expires_at' => $expiration,
+            'password' => $request->password,
         ]);
 
-        // Create the temporary user
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $hashedPassword,
-            'user_type' => 'temporary',
-        ]);
+        // Generar la URL del enlace de subida
+        $uploadLink = URL::temporarySignedRoute(
+            'upload.form', // Asegúrate de tener esta ruta definida
+            $temporaryLink->expires_at,
+            ['token' => $temporaryLink->token]
+        );
 
-        // Store the plain password in session if generated for email
-        if ($generatedPassword) {
-            session(['temporary_user_password' => $generatedPassword]);
-        }
+        // Enviar el correo
+        Mail::to($request->email)->send(
+            new UploadLinkEmail($uploadLink, $request->name, $temporaryLink, $request->password)
+        );
 
-        // Generate the temporary upload URL
-        $uploadLink = route('temporary-upload.form', ['token' => $token]);
-
-        // Send the email with the upload link and password if generated
-        Mail::to($request->email)->send(new UploadLinkEmail($uploadLink, $request->name, $temporaryLink, $generatedPassword));
-
-        // Redirect with a success message
-        return redirect()->route('admin.temporary-link.index')->with('success', __('Temporary upload link and temporary user created successfully and sent to ') . $request->email);
-    }
-
-     /**
-     * Remove the specified temporary link from storage.
-     *
-     * @param  \App\Models\TemporaryLink  $temporaryLink
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function destroy(TemporaryLink $temporaryLink)
-    {
-        // Optionally, delete the associated temporary user
-        User::where('email', $temporaryLink->email)
-            ->where('user_type', 'temporary')
-            ->delete();
-
-        $temporaryLink->delete();
-        return back()->with('success', __('Temporary link and associated user deleted successfully.'));
-    }
-
-    /**
-     * Displays the temporary upload form for a given token.
-     *
-     * @param  string  $token
-     * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
-     */
-    public function showTemporaryUploadForm(string $token)
-    {
-        $temporaryLink = TemporaryLink::where('token', $token)->firstOrFail();
-
-        $now = new DateTime('now', new DateTimeZone(config('app.timezone')));
-        $expiresAt = new DateTime($temporaryLink->expires_at, new DateTimeZone('UTC'));
-
-        if ($expiresAt <= $now) {
-            $temporaryUser = User::where('email', $temporaryLink->email)->where('user_type', 'temporary')->first();
-
-            if ($temporaryUser) {
-                \App\Models\Permission::where('user_id', $temporaryUser->id)
-                    ->whereNotNull('folder_id')
-                    ->delete();
-                $temporaryUser->delete(); // Delete the temporary user upon link expiration
-            }
-
-            return redirect()->route('welcome')->with('error', __('This temporary link has expired and associated user has been removed.'));
-        }
-
-        return view('admin.temporary-link.upload-form', ['token' => $token, 'temporaryLink' => $temporaryLink]);
+        return redirect()->route('dashboard')->with('success', 'El enlace de subida ha sido enviado con éxito.');
     }
 }
