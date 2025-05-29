@@ -48,8 +48,6 @@
                                 {{ __('Back to User List') }}
                             </button>
                         </div>
-
-
                     </div>
                 </div>
             </div>

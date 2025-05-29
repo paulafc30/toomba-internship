@@ -7,11 +7,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 use App\Models\TemporaryLink;
+use App\Models\User;
 use App\Mail\AccessLinkEmail;
-use Illuminate\Support\Facades\Auth; // Importa la clase Auth
-
+use Illuminate\Support\Facades\Auth; 
+use Illuminate\Support\Facades\Session; 
 class TemporaryLinkController extends Controller
 {
     /**
@@ -29,8 +31,8 @@ class TemporaryLinkController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email',
-            'password' => 'nullable|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'nullable|string|min:8|max:255',
             'expire_date' => 'nullable|date',
             'expire_time' => 'nullable|date_format:H:i',
         ]);
@@ -44,22 +46,46 @@ class TemporaryLinkController extends Controller
             $expiration = Carbon::parse($request->expire_date . ' ' . $time);
         }
 
-        // Crear el enlace temporal (esto podría no ser necesario si solo quieres enviar un enlace de inicio de sesión)
-        $temporaryLink = TemporaryLink::create([
-            'token' => Str::random(32),
-            'expires_at' => $expiration,
-            'password' => $request->password,
+        // Determinar la contraseña para el usuario
+        $userPassword = $request->filled('password') ? $request->password : Str::random(16);
+
+        // Crear un usuario temporal
+        $temporaryUser = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($userPassword), // Hashear la contraseña (la proporcionada o la aleatoria)
+            'user_type' => 'temporary', // O algún otro identificador para usuarios temporales
+            'email_verified_at' => now(), 
         ]);
 
-        // Generar la URL de inicio de sesión (o la página de inicio si la autenticación es automática)
-        $accessLink = route('login'); // Redirige a la página de inicio de sesión
+        // Crear el enlace temporal incluyendo name, email y asociando el ID del usuario
+        $temporaryLink = TemporaryLink::create([
+            'token' => Str::random(32),
+            'name' => $request->name,
+            'email' => $request->email,
+            'expires_at' => $expiration,
+            'password' => $request->filled('password') ? $request->password : $userPassword, // Guardar la contraseña (la proporcionada o la generada)
+            'user_id' => $temporaryUser->id, // Asociar el ID del usuario recién creado
+        ]);
 
-        // Enviar el correo
+        // Generar la URL de inicio de sesión
+        $accessLink = route('login');
+
         Mail::to($request->email)->send(
-            new AccessLinkEmail($accessLink, $request->name, $temporaryLink, $request->password)
+            new AccessLinkEmail($accessLink, $request->name, $temporaryLink, $userPassword, $temporaryUser) // Pasa la contraseña (generada si es necesario)
         );
 
-        return redirect()->route('dashboard')->with('success', 'The link has been sent successfully.');
+        // Devolver una respuesta JSON para AJAX
+        return response()->json(['success' => 'The link and temporary user have been created and sent successfully.']);
+    }
+
+    /**
+     * Muestra una vista con el mensaje de éxito y luego redirige al dashboard.
+     */
+    public function linkSent()
+    {
+        // Esta ruta ya no es necesaria con la implementación AJAX
+        return redirect()->route('dashboard')->with('success', 'The link and temporary user have been created and sent successfully.');
     }
 
     /**
@@ -69,11 +95,9 @@ class TemporaryLinkController extends Controller
      */
     public function index()
     {
-        // Aquí puedes agregar la lógica para obtener y mostrar
-        // la lista de enlaces temporales desde tu base de datos.
-
-        // Por ahora, simplemente retornamos una vista (asegúrate de crearla)
-        return view('admin.temporary-link');
+        // Obtener todos los enlaces temporales para mostrar en la vista
+        $temporaryLinks = TemporaryLink::all();
+        return view('admin.temporary-link', compact('temporaryLinks'));
     }
 
     /**
@@ -84,8 +108,12 @@ class TemporaryLinkController extends Controller
      */
     public function destroy(TemporaryLink $temporaryLink)
     {
+        // Si el enlace tiene un usuario asociado, elimínalo también
+        if ($temporaryLink->user) {
+            $temporaryLink->user->delete();
+        }
         $temporaryLink->delete();
-        return redirect()->route('admin.temporary-link.index')->with('success', 'The temporary link has been removed.');
+        return redirect()->route('admin.temporary-link.index')->with('success', 'The temporary link and its associated user (if any) have been removed.');
     }
 
     /**
@@ -98,24 +126,32 @@ class TemporaryLinkController extends Controller
     {
         $temporaryLink = TemporaryLink::where('token', $token)->firstOrFail();
 
+        // Si el enlace tiene un user_id asociado y ese usuario ya no existe, o si el enlace ha expirado
         if ($temporaryLink->expires_at < now()) {
+            //  Si el enlace ha expirado y el usuario asociado no se ha eliminado aún, podrías forzar su eliminación aquí.
+            if ($temporaryLink->user) {
+                $temporaryLink->user->delete();
+            }
             abort(403, 'The upload link has expired.');
         }
 
-        return view('temporary-upload-form', ['token' => $token, 'passwordRequired' => !empty($temporaryLink->password)]);
+        $passwordRequired = !empty($temporaryLink->password);
+
+        return view('temporary-upload-form', [
+            'token' => $token,
+            'passwordRequired' => $passwordRequired
+        ]);
     }
+
     /**
      * Elimina usuarios temporales expirados.
+     * Esta función es redundante si el comando de consola hace el trabajo.
+     * Podrías eliminarla o usarla para un trigger manual desde la interfaz de administración.
      *
      * @return \Illuminate\Http\RedirectResponse
      */
     public function deleteExpiredTemporaryUsers()
     {
-        // Aquí iría la lógica para eliminar usuarios temporales expirados
-        // si tu modelo TemporaryLink estuviera relacionado con usuarios.
-        // Como no parece ser el caso en este momento, puedes dejarlo vacío
-        // o implementar la lógica si la necesitas en el futuro.
-
-        return redirect()->back()->with('info', 'Expired temporary user cleanup is complete.');
+        return redirect()->back()->with('info', 'Expired temporary user cleanup is handled by the scheduled task.');
     }
 }

@@ -4,8 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\TemporaryLink;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 
 class DeleteExpiredTemporaryUsers extends Command
 {
@@ -14,50 +14,39 @@ class DeleteExpiredTemporaryUsers extends Command
      *
      * @var string
      */
-    protected $signature = 'temporary-users:delete-expired';
+    protected $signature = 'temporary:delete-expired-users';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Deletes temporary users whose associated links have expired.';
+    protected $description = 'Deletes temporary users whose associated link has expired, but keeps the temporary link record.';
 
     /**
      * Execute the console command.
-     *
-     * @return int
      */
     public function handle()
     {
-        $now = Carbon::now('UTC');
+        // Obtener todos los enlaces temporales que han expirado
+        // y que tienen un user_id asociado (es decir, que crearon un usuario temporal).
+        $expiredLinks = TemporaryLink::where('expires_at', '<=', now())
+                                     ->whereNotNull('user_id')
+                                     ->get();
 
-        $expiredLinks = TemporaryLink::where('expires_at', '<=', $now)->get();
-
-        $deletedUserCount = 0;
-
+        $count = 0;
         foreach ($expiredLinks as $link) {
-            $temporaryUser = User::where('email', $link->email)
-                ->where('user_type', 'temporary')
-                ->first();
-
-            if ($temporaryUser) {
-                // Eliminar permisos asociados 
-                \App\Models\Permission::where('user_id', $temporaryUser->id)
-                    ->whereNotNull('folder_id')
-                    ->delete();
-
-                // Eliminar el usuario temporal
-                $temporaryUser->delete();
-                $deletedUserCount++;
-
-                // Eliminar el enlace temporal expirado
-                $link->delete();
+            // Verificar si el usuario asociado aún existe antes de intentar eliminarlo
+            if ($link->user) {
+                User::where('id', $link->user_id)->delete();
+                $count++;
+                $this->info("Deleted user with ID: {$link->user_id} (email: {$link->email}) for expired link token: {$link->token}");
+            } else {
+                $this->warn("User with ID: {$link->user_id} for link token: {$link->token} not found or already deleted.");
             }
+            // Importante: NO eliminar el $link->delete(); aquí, ya que el usuario quiere mantener los registros de enlaces temporales.
         }
 
-        $this->info("Successfully deleted {$deletedUserCount} expired temporary users and their links.");
-
-        return Command::SUCCESS;
+        $this->info("Successfully processed. Deleted {$count} expired temporary users. Temporary link records remain.");
     }
 }

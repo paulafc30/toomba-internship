@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Folder;
 use App\Models\File;
-use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Permission;
 use Illuminate\Http\Request;
@@ -14,33 +13,33 @@ use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 
-// Controller for handling folder-related operations
 class FolderController extends Controller
 {
-    /**
-     * Display a listing of the resource (folders).
-     * Retrieves folders based on user type (admin or client with permissions).
-     *
-     * @return \Illuminate\Contracts\View\View
-     */
-    public function index(): View
+    public function index(Request $request): View
     {
         $user = Auth::user();
-        $folders = collect();
+        $search = $request->input('search');
+        $foldersQuery = Folder::query();
 
-        if ($user && $user->user_type === 'administrator') {
-            $folders = Folder::paginate(10);
-        } else {
+        if ($user && $user->user_type !== 'administrator') {
             $userId = Auth::id();
-            $permissions = Permission::where('user_id', $userId)
+            $permittedFolderIds = Permission::where('user_id', $userId)
                 ->whereNotNull('folder_id')
-                ->where('permission_type', '!=', 'no-access') // Exclude 'no-access'
+                ->where('permission_type', '!=', 'no-access')
                 ->pluck('folder_id')
                 ->toArray();
-            $folders = Folder::whereIn('id', $permissions)->paginate(10);
+
+            $foldersQuery->whereIn('id', $permittedFolderIds);
         }
 
-        return view('folders', compact('folders', 'user'));
+        if ($search) {
+            $foldersQuery->where('name', 'like', '%' . $search . '%');
+        }
+
+        $folders = $foldersQuery->paginate(10)->appends(['search' => $search]);
+
+        // Si no hay resultados, se muestra mensaje en la vista
+        return view('folders', compact('folders', 'user', 'search'));
     }
 
     /**

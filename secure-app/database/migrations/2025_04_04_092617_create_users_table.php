@@ -22,7 +22,9 @@ class CreateUsersTable extends Migration
             $table->string('user_type')->nullable();
             $table->string('profile_image_path')->nullable();
             $table->rememberToken();
-            $table->timestamps(); 
+            $table->timestamps();
+            $table->string('googletwofactor_secret')->nullable();
+            $table->boolean('twofactor_verified')->default(false);
         });
     }
 

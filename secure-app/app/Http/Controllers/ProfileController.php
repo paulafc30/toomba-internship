@@ -3,34 +3,21 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\RedirectResponse;  
 use App\Models\User;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile edit form.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\View\View
-     */
-    public function edit(Request $request): View
+    public function edit(Request $request)
     {
         return view('profile.edit', [
             'user' => $request->user(),
         ]);
     }
 
-    /**
-     * Update the user's profile information.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
     public function update(Request $request): RedirectResponse
     {
         $user = Auth::user();
@@ -53,34 +40,31 @@ class ProfileController extends Controller
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
-    /**
-     * Updates the user's profile image.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\User  $user
-     * @return void
-     */
     private function updateProfileImage(Request $request, User $user): void
     {
         $image = $request->file('profile_image');
         $filename = time() . '.' . $image->getClientOriginalExtension();
-        $path = Storage::putFileAs('public/images', $image, $filename);
 
+        // Guardar la imagen en storage/app/public/images
+        $path = $image->storeAs('images', $filename, 'public');
+
+        dd([
+            'store_result' => $path,
+            'is_valid' => $image->isValid(),
+            'error' => $image->getErrorMessage(),
+        ]);
+
+        // Si ya tenía imagen, borrar la anterior
         if ($user->profile_image_path) {
-            Storage::delete('public/' . $user->profile_image_path);
+            Storage::disk('public')->delete($user->profile_image_path);
         }
 
-        $user->profile_image_path = 'images/' . $filename;
+        // Guardar ruta relativa 
+        $user->profile_image_path = $path;
         $user->save();
     }
 
-    /**
-     * Delete the user's account.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request)
     {
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],

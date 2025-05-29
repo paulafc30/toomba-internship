@@ -30,12 +30,22 @@ class TemporaryLink extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'file_id',
+        'user_id', // Asegúrate de incluir user_id en fillable
+        'file_id', // Si lo usas para otra funcionalidad
         'token',
         'expires_at',
         'name',
         'email',
-        'password',
+        'password', // Aunque no se use directamente para login, es parte del registro
+    ];
+
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'expires_at' => 'datetime',
     ];
 
     /**
@@ -46,5 +56,15 @@ class TemporaryLink extends Model
     public function file(): BelongsTo
     {
         return $this->belongsTo(File::class);
+    }
+
+    /**
+     * Get the user that the temporary link belongs to.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

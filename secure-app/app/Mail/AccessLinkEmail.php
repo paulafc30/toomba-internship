@@ -46,7 +46,7 @@ class AccessLinkEmail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your File Upload Link',
+            subject: 'Your Temporary Link',
         );
     }
 

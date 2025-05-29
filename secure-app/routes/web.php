@@ -16,7 +16,7 @@ Route::get('/', function () {
 // Rutas públicas (sin middleware)
 Route::get('/admin/files', [FileController::class, 'loadView'])->name('admin.files');
 Route::post('/upload', [FileController::class, 'uploadStandalone'])->name('upload.standalone');
-Route::get('/files/{file}/download', [FileController::class, 'dowloadFile'])->name('files.download');
+Route::get('/files/{file}/download', [FileController::class, 'downloadFile'])->name('files.download');
 Route::get('/files', [FileController::class, 'showAllFilesView'])->name('files.view');
 Route::delete('/files/{filename}', [FileController::class, 'destroyStandalone'])->name('files.destroy.standalone');
 
@@ -29,7 +29,7 @@ require __DIR__ . '/auth.php';
 // Rutas protegidas por autenticación
 Route::middleware('auth')->group(function () {
 
-    Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
+    Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
 
     // Perfil de usuario
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -70,13 +70,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
         Route::get('/folders/{folder}', [FolderController::class, 'show'])->name('folders.show');
         Route::get('/folders/{folder}/files', [FileController::class, 'index'])->name('folders.files');
-        Route::delete('/files/{file}', [FileController::class, 'destroyFile'])->name('files.destroy');
+        Route::delete('/files/{file}', [FileController::class, 'destroy'])->name('files.destroy');
     });
 
-    // Acceso y generación de enlaces temporales (públicos firmados)
+    // Acceso y generación de enlaces temporales 
     Route::post('/files/{file}/generate-temporary-link', [FileController::class, 'generateTemporaryLink'])->name('files.generate-temporary-link');
     Route::get('/temporary-link/{token}', [FileController::class, 'accessTemporaryLink'])->name('temporary-link.access');
 
     // Tarea administrativa: eliminar usuarios temporales expirados
-    Route::get('/delete-expired-temporary-users', [TemporaryLinkController::class, 'deleteExpiredTemporaryUsers'])->name('delete.expired.users');
+    Route::get('/delete-expired-temporary-users', [TemporaryLinkController::class, 'deleteExpiredTemporaryUsers'])->name('admin.delete.expired.users');
+
+    Route::get('/phpinfo', function () {
+        phpinfo();
+    });
 });

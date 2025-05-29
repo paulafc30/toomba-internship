@@ -4,94 +4,86 @@ namespace App\Http\Controllers;
 
 use App\Models\Folder;
 use App\Models\File;
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use App\Models\TemporaryLink;
+use App\Models\Permission;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
-// Controller for handling file-related operations
 class FileController extends Controller
 {
-    /**
-     * Display a view with all standalone files (not associated with a folder).
-     *
-     * @return \Illuminate\Contracts\View\View
-     */
-    public function showAllFilesView(): View
+    // Mostrar archivos sin carpeta asignada
+    public function showAllFilesView(Request $request)
     {
-        $files = File::all();
-        $folder = null;
-        return view('files', compact('files', 'folder'));
+        $query = $request->input('search');
+
+        $files = File::query()->whereNull('folder_id');
+
+        if ($query) {
+            $files = $files->where('name', 'LIKE', '%' . $query . '%');
+        }
+
+        $files = $files->get();
+
+        return view('files', compact('files', 'query'));
     }
 
-    /**
-     * Display a view with files belonging to a specific folder.
-     *
-     * @param  \App\Models\Folder  $folder
-     * @return \Illuminate\Contracts\View\View
-     */
-    public function index(Folder $folder): View
+    // Mostrar archivos de una carpeta concreta
+    public function index(Folder $folder, Request $request)
     {
-        $files = File::where('folder_id', $folder->id)->get();
-        return view('files', compact('folder', 'files'));
+        $query = $request->input('search');
+
+        $filesQuery = $folder->files();
+
+        if ($query) {
+            $filesQuery = $filesQuery->where('name', 'LIKE', '%' . $query . '%');
+        }
+
+        $files = $filesQuery->get();
+
+        return view('files', compact('files', 'folder', 'query'));
     }
 
-    /**
-     * Load a view to display all files (standalone).
-     *
-     * @return \Illuminate\Contracts\View\View
-     */
-    public function loadView(): View
-    {
-        $files = File::all();
-        return view('files', ['files' => $files]);
-    }
-
-    /**
-     * Upload a standalone file (not associated with a folder).
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
+    // Subida de archivo sin carpeta (vista normal)
     public function uploadStandalone(Request $request): RedirectResponse
     {
         $request->validate([
             'file' => 'required|file|max:2048',
         ]);
 
-        $file = $request->file('file');
-        $fileName = time() . '_' . $file->getClientOriginalName();
+        try {
+            $file = $request->file('file');
+            $filename = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
+                . '_' . time() . '.' . $file->getClientOriginalExtension();
 
-        $relativePath = $file->storeAs('', $fileName, 'public'); // Store the relative path
-        File::create([
-            'folder_id' => null,
-            'name' => $file->getClientOriginalName(),
-            'path' => $relativePath, // Store the relative path
-            'size' => $file->getSize(),
-            'mime_type' => $file->getClientMimeType(),
-        ]);
+            $relativePath = $file->storeAs('uploads/standalone', $filename, 'public');
 
-        return redirect()->route('files.view')->with('success', 'File uploaded!');
+            File::create([
+                'folder_id' => null,
+                'name' => $file->getClientOriginalName(),
+                'path' => $relativePath,
+                'size' => $file->getSize(),
+                'mime_type' => $file->getClientMimeType(),
+                'uploaded_by' => Auth::id(),
+            ]);
+
+            return redirect()->route('files.view')->with('success', 'Archivo subido correctamente.');
+        } catch (\Exception $e) {
+            Log::error('Error al subir archivo standalone: ' . $e->getMessage());
+            return redirect()->route('files.view')->with('error', 'Error al subir archivo.');
+        }
     }
 
-
-    /**
-     * Delete a standalone file from storage and the database.
-     *
-     * @param  string  $filename
-     * @return \Illuminate\Http\RedirectResponse
-     */
+    // Eliminar archivo standalone
     public function destroyStandalone(string $filename): RedirectResponse
     {
-        $fileToDelete = File::where('name', $filename)
-            ->whereNull('folder_id')
-            ->firstOrFail();
-
-        $filePathInStorage = str_replace(Storage::url(''), '', $fileToDelete->path);
+        $fileToDelete = File::where('name', $filename)->whereNull('folder_id')->firstOrFail();
+        $filePathInStorage = $fileToDelete->path;
 
         try {
             if (Storage::disk('public')->exists($filePathInStorage)) {
@@ -102,170 +94,217 @@ class FileController extends Controller
 
             return redirect()->route('files.view')->with('success', 'File successfully deleted.');
         } catch (\Exception $e) {
-            return redirect()->route('files.view')->with('error', 'Error deleting file: ' . $e->getMessage());
+            Log::error('Error al eliminar archivo standalone: ' . $e->getMessage());
+            return redirect()->route('files.view')->with('error', 'Error al eliminar archivo.');
         }
     }
-    /**
-     * Store a new file associated with a specific folder.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Folder  $folder
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function storeFile(Request $request, Folder $folder): RedirectResponse
-    {
-        $request->validate([
-            'file' => 'required|file|max:2048',
-        ]);
 
-        if ($request->hasFile('file')) {
+    // Subida de archivo a carpeta vía AJAX (JSON)
+    public function storeFile(Request $request, Folder $folder): JsonResponse
+    {
+        $request->headers->set('Accept', 'application/json');
+
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autenticado.'
+            ], 401);
+        }
+
+        // Comprobamos permiso antes de validar archivo para evitar validación innecesaria
+        if ($user->user_type !== 'administrator') {
+            $permission = Permission::where('user_id', $user->id)
+                ->where('folder_id', $folder->id)
+                ->value('permission_type');
+
+            if ($permission !== 'edit') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para subir archivos a esta carpeta.'
+                ], 403);
+            }
+        }
+
+        try {
+            $request->validate([
+                'file' => 'required|file|max:10240',
+            ]);
+
             $file = $request->file('file');
-            $filename = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $pathRelative = $file->storeAs('uploads/' . $folder->id, $filename, 'public'); // Store the relative path
+            $filename = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
+                . '_' . time() . '.' . $file->getClientOriginalExtension();
+
+            $path = $file->storeAs('uploads/' . $folder->id, $filename, 'public');
 
             File::create([
                 'folder_id' => $folder->id,
                 'name' => $file->getClientOriginalName(),
-                'path' => $pathRelative, // Store the relative path
+                'path' => $path,
                 'mime_type' => $file->getClientMimeType(),
                 'size' => $file->getSize(),
+                'uploaded_by' => $user->id,
             ]);
 
-            return back()->with('success', __('File uploaded successfully to folder: ') . $folder->name);
+            return response()->json([
+                'success' => true,
+                'message' => 'Archivo subido correctamente.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error al subir archivo a carpeta: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al subir el archivo.'
+            ], 500);
         }
-
-        return back()->with('error', __('Error uploading file.'));
     }
-    /**
-     * Delete a file within a specific folder (for administrators).
-     *
-     * @param  \App\Models\Folder  $folder
-     * @param  \App\Models\File  $file
-     * @return \Illuminate\Http\RedirectResponse
-     */
+
+    // Eliminar archivo dentro de carpeta (web)
     public function destroyFileInFolder(Folder $folder, File $file): RedirectResponse
     {
-        // Verify if the file belongs to the folder
         if ($file->folder_id !== $folder->id) {
-            abort(403, __('Unauthorized action.'));
+            abort(403, 'Acción no autorizada.');
+        }
+
+        if (! $this->userHasAccess($folder)) {
+            abort(403, 'Acceso denegado.');
         }
 
         try {
-            if (Storage::disk('public')->exists(str_replace(Storage::url(''), '', $file->path))) {
-                Storage::disk('public')->delete(str_replace(Storage::url(''), '', $file->path));
+            if (Storage::disk('public')->exists($file->path)) {
+                Storage::disk('public')->delete($file->path);
             }
 
             $file->delete();
 
-            // Check if the folder is now empty and delete it from storage
-            $folderController = new FolderController();
-            $folderController->deleteEmptyStorageFolder($folder->id);
+            $this->deleteEmptyStorageFolder($folder->id);
 
-            return back()->with('success', __('File deleted successfully.'));
+            return back()->with('success', 'File successfully deleted.');
         } catch (\Exception $e) {
-            return back()->with('error', __('Error deleting file: ') . $e->getMessage());
+            Log::error('Error al eliminar archivo en carpeta: ' . $e->getMessage());
+            return back()->with('error', 'Error al eliminar archivo.');
         }
     }
 
-    /**
-     * Delete a file (standalone or within a folder) for a client.
-     *
-     * @param  \App\Models\File  $file
-     * @return \Illuminate\Http\RedirectResponse
-     */
+    // Eliminar archivo (cliente)
     public function destroyFile(File $file): RedirectResponse
     {
-        if (Auth::user() && Auth::user()->user_type === 'client') {
-            // Here you should add your permission logic to verify
-            // if the client has permission to delete this file ($file).
-            // For example, verify if the file belongs to a folder
-            // that the client has access to.
+        $user = Auth::user();
 
-            try {
-                if (Storage::disk('public')->exists(str_replace(Storage::url(''), '', $file->path))) {
-                    Storage::disk('public')->delete(str_replace(Storage::url(''), '', $file->path));
-                }
+        if (!$user || $user->user_type !== 'client') {
+            abort(403, 'Acción no autorizada.');
+        }
 
-                $folderId = $file->folder_id;
-                $file->delete();
-
-                // Check if the folder is now empty and delete it from storage (if the file was in a folder)
-                if ($folderId) {
-                    $folderController = new FolderController();
-                    $folderController->deleteEmptyStorageFolder($folderId);
-                }
-
-                return back()->with('success', __('File deleted successfully.'));
-            } catch (\Exception $e) {
-                return back()->with('error', __('Error deleting file: ') . $e->getMessage());
+        try {
+            if (Storage::disk('public')->exists($file->path)) {
+                Storage::disk('public')->delete($file->path);
             }
-        } else {
-            abort(403, __('Unauthorized action.'));
+
+            $folderId = $file->folder_id;
+            $file->delete();
+
+            if ($folderId) {
+                $this->deleteEmptyStorageFolder($folderId);
+            }
+
+            return back()->with('success', 'File successfully deleted');
+        } catch (\Exception $e) {
+            Log::error('Error deleting client file: ' . $e->getMessage());
+            return back()->with('error', 'Error deleting file');
         }
     }
 
-    /**
-     * Download a specific file.
-     *
-     * @param  \App\Models\File  $file
-     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\RedirectResponse
-     */
-    public function dowloadFile(File $file)
+    // Descargar archivo
+    public function downloadFile(File $file): \Symfony\Component\HttpFoundation\StreamedResponse|RedirectResponse
     {
         if (Storage::disk('public')->exists($file->path)) {
             return Storage::disk('public')->download($file->path, $file->name);
-        } else {
-            return back()->with('error', __('File not found.'));
+        }
+
+        return redirect()->back()->with('error', 'File not found');
+    }
+
+    // Generar enlace temporal para archivo
+    public function generateTemporaryLink(File $file): RedirectResponse
+    {
+        try {
+            $token = Str::random(60);
+            $expiresAt = Carbon::now()->addDay();
+
+            TemporaryLink::create([
+                'file_id' => $file->id,
+                'token' => $token,
+                'expires_at' => $expiresAt,
+            ]);
+
+            $url = route('temporary-link.access', ['token' => $token]);
+            return back()->with('success', 'Temporary link generated: ' . $url);
+        } catch (\Exception $e) {
+            Log::error('Error al generar enlace temporal: ' . $e->getMessage());
+            return back()->with('error', 'Error al generar enlace temporal.');
         }
     }
 
-    /**
-     * Generate a temporary link for a specific file.
-     *
-     * @param  \App\Models\File  $file
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function generateTemporaryLink(File $file): RedirectResponse
-    {
-        $token = Str::random(60);
-        $expiresTimestamp = time() + (24 * 3600); // Expiration in 24 hours (in seconds)
-        $expiresAt = date('Y-m-d H:i:s', $expiresTimestamp); // Format for the database
-
-        $temporaryLink = TemporaryLink::create([
-            'file_id' => $file->id,
-            'token' => $token,
-            'expires_at' => $expiresAt,
-        ]);
-
-        $temporaryLinkUrl = route('temporary-link.access', ['token' => $token]);
-
-        return back()->with('success', __('Temporary link generated: ') . $temporaryLinkUrl);
-    }
-
-    /**
-     * Access a file via a temporary link.
-     *
-     * @param  string  $token
-     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\RedirectResponse
-     */
-    public function accessTemporaryLink(string $token)
+    // Acceder a enlace temporal
+    public function accessTemporaryLink(string $token): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $temporaryLink = TemporaryLink::where('token', $token)->firstOrFail();
 
-        if ($temporaryLink->expires_at) {
-            $expirationTimestamp = strtotime($temporaryLink->expires_at);
-            if (time() > $expirationTimestamp) {
-                $temporaryLink->delete();
-                abort(404, __('Temporary link has expired.'));
-            }
+        if (Carbon::parse($temporaryLink->expires_at)->isPast()) {
+            $temporaryLink->delete();
+            abort(404, 'The temporary link has expired.');
         }
 
         $file = $temporaryLink->file;
-        $filePath = Storage::path($file->path);
-        $fileName = $file->name;
 
-        return response()->file($filePath, [
-            'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+        if (!Storage::disk('public')->exists($file->path)) {
+            abort(404, 'File not found');
+        }
+
+        return Storage::disk('public')->response($file->path, $file->name, [
+            'Content-Disposition' => 'inline; filename="' . $file->name . '"',
         ]);
+    }
+
+    // ========
+    // UTILIDADES
+    // ========
+
+    /**
+     * Comprueba si el usuario tiene acceso a la carpeta.
+     */
+    private function userHasAccess(Folder $folder): bool
+    {
+        $user = Auth::user();
+
+        if (!$user) return false;
+
+        if ($user->user_type === 'administrator') {
+            return true;
+        }
+
+        return Permission::where('folder_id', $folder->id)
+            ->where('user_id', $user->id)
+            ->exists();
+    }
+
+    /**
+     * Delete the storage folder if it is empty.
+     */
+    private function deleteEmptyStorageFolder(int $folderId): void
+    {
+        $folderPath = 'uploads/' . $folderId;
+
+        $files = Storage::disk('public')->files($folderPath);
+
+        if (count($files) === 0) {
+            Storage::disk('public')->deleteDirectory($folderPath);
+        }
     }
 }

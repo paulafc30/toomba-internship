@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toomba Secure</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -28,7 +29,7 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-100">
                                 <tr>
-
+                                    <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Photo') }}</th>
                                     <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Name') }}</th>
                                     <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('Email') }}</th>
                                     <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('User Type') }}</th>
@@ -39,6 +40,11 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @foreach ($users as $user)
                                 <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <img src="{{ $user->profile_image_path ? url('storage/' . $user->profile_image_path) : asset('images/default-avatar.jpg') }}"
+                                            alt="{{ $user->name }}"
+                                            class="w-10 h-10 rounded-full object-cover">
+                                    </td>
 
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                                         <a href="{{ route('admin.users.show', $user->id) }}" class="text-blue-500 hover:text-blue-700">
@@ -66,10 +72,7 @@
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="inline-flex items-center bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-full text-xs">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                </svg>
-                                                {{ __('Delete') }}
+                                                <i class="bi bi-trash"></i>
                                             </button>
                                         </form>
                                         @endif
@@ -81,12 +84,11 @@
                         @endif
                     </div>
                 </div>
-                <a href="{{ route('dashboard') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-full mt-4 inline-flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                    Back to Dashboard
+                <a href="{{ route('dashboard') }}"
+                    class="inline-flex items-center px-4 py-2 bg-[#1F2937] hover:bg-[#111827] border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest transition ease-in-out duration-150">
+                    {{ __('Back to Dashboard') }}
                 </a>
+
             </div>
         </div>
     </x-app-layout>
