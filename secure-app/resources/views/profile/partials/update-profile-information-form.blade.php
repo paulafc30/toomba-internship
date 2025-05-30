@@ -28,6 +28,7 @@
             <p>No hay imagen de perfil guardada.</p>
             @endif
 
+
         </div>
 
         <div>

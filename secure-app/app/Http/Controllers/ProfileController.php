@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\RedirectResponse;  
+use Illuminate\Http\RedirectResponse;
 use App\Models\User;
 
 class ProfileController extends Controller
@@ -35,8 +35,6 @@ class ProfileController extends Controller
             $this->updateProfileImage($request, $user);
         }
 
-        $user->save();
-
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
@@ -45,14 +43,13 @@ class ProfileController extends Controller
         $image = $request->file('profile_image');
         $filename = time() . '.' . $image->getClientOriginalExtension();
 
+        /*dd([
+            'dir_exists' => Storage::disk('public')->exists('images'),
+            'can_write' => is_writable(storage_path('app/public/images')),
+        ]);*/
+
         // Guardar la imagen en storage/app/public/images
         $path = $image->storeAs('images', $filename, 'public');
-
-        dd([
-            'store_result' => $path,
-            'is_valid' => $image->isValid(),
-            'error' => $image->getErrorMessage(),
-        ]);
 
         // Si ya tenía imagen, borrar la anterior
         if ($user->profile_image_path) {
@@ -62,6 +59,8 @@ class ProfileController extends Controller
         // Guardar ruta relativa 
         $user->profile_image_path = $path;
         $user->save();
+        //dd($user->fresh());
+        //dd($user->profile_image_path);
     }
 
     public function destroy(Request $request)
