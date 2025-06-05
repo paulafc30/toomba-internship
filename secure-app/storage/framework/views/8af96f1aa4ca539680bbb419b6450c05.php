@@ -19,9 +19,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- CSS y JS con Vite -->
-    <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js', 'resources/js/folders.js']); ?>
+    <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js', 'resources/js/folders.js', 'resources/js/files.js']); ?>
+
 
     <meta name="base-route" content="<?php echo e(route(Auth::user()->user_type === 'administrator' ? 'admin.folders.index' : 'client.folders.index')); ?>">
+    <meta name="folder-id" content="<?php echo e(is_object(request()->route('folder')) ? request()->route('folder')->id : request()->route('folder')); ?>">
+    <meta name="base-folder-route" content="<?php echo e(url(Auth::user()->user_type === 'administrator' ? 'admin/folders' : 'client/folders')); ?>">
+
 
     <style>
         .sidebar-image {

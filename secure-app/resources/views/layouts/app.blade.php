@@ -19,9 +19,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- CSS y JS con Vite -->
-    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/folders.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/folders.js', 'resources/js/files.js'])
+
 
     <meta name="base-route" content="{{ route(Auth::user()->user_type === 'administrator' ? 'admin.folders.index' : 'client.folders.index') }}">
+    <meta name="folder-id" content="{{ is_object(request()->route('folder')) ? request()->route('folder')->id : request()->route('folder') }}">
+    <meta name="base-folder-route" content="{{ url(Auth::user()->user_type === 'administrator' ? 'admin/folders' : 'client/folders') }}">
+
 
     <style>
         .sidebar-image {

@@ -103,7 +103,6 @@
                     <?php echo e(__('Back to Dashboard')); ?>
 
                 </a>
-
             </div>
         </div>
      <?php echo $__env->renderComponent(); ?>
@@ -117,5 +116,5 @@
 <?php unset($__componentOriginal9ac128a9029c0e4701924bd2d73d7f54); ?>
 <?php endif; ?>
 </body>
-
-</html><?php /**PATH /var/www/html/resources/views/admin/users.blade.php ENDPATH**/ ?>
+</html>
+<?php /**PATH /var/www/html/resources/views/admin/users.blade.php ENDPATH**/ ?>

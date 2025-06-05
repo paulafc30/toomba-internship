@@ -8,9 +8,11 @@
 
     
     <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
+    <?php echo app('Illuminate\Foundation\Vite')('resources/js/folders.js'); ?>
 
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
 </head>
 
 <body class="bg-gray-100">
@@ -90,15 +92,63 @@
                     <h1 class="text-lg font-semibold mb-4"><?php echo e(__('Files List')); ?></h1>
 
                     
-                    <form method="GET" action="<?php echo e(isset($folder) ? route('admin.folders.files', $folder->id) : route('files.view')); ?>" class="flex flex-col sm:flex-row items-center gap-3 mb-4">
-                        <input type="text" id="searchInput" name="search" value="<?php echo e(old('search', $query ?? '')); ?>" placeholder="Search for file by name" class="w-full sm:w-auto flex-grow px-4 py-2 border border-gray-300 rounded-md text-sm" />
-                        <button class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700" type="submit">
-                            <i class="bi bi-search"></i> Search
-                        </button>
-                        <button type="button" id="clear-search" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm hover:bg-gray-400">
-                            <i class="bi bi-x-circle"></i> Clear
-                        </button>
+                    <form method="GET" action="<?php echo e(isset($folder) ? route('admin.folders.files', $folder->id) : route('files.view')); ?>" class="space-y-4">
+
+                        
+                        <div class="flex w-full gap-2">
+                            <input
+                                type="text"
+                                name="search"
+                                id="search-input"
+                                value="<?php echo e(request('search')); ?>"
+                                placeholder="Search files..."
+                                class="w-full rounded-full border border-gray-300 shadow-sm focus:border-[#1D4ED8] focus:ring-[#1D4ED8] px-4 py-1 text-sm" />
+
+                            <button type="submit" class="bg-[#1D4ED8] text-white px-4 py-1 text-sm rounded-full hover:bg-blue-700 transition">
+                                Search
+                            </button>
+
+                            <button type="button" id="clear-search" class="bg-gray-300 text-gray-800 px-4 py-1 text-sm rounded-full hover:bg-gray-400 transition">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+
+                            <button type="button" id="filter-button" class="bg-[#1D4ED8] text-white px-4 py-1 text-sm rounded-full hover:bg-blue-700 flex items-center gap-1 transition">
+                                <span>Filters</span>
+                                <i id="filter-icon" class="bi bi-funnel"></i>
+                            </button>
+
+                        </div>
+
+                        
+                        <div id="advancedFilters" class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 hidden">
+
+                            <div class="flex flex-col gap-1">
+                                <label for="date_from" class="text-sm">From:</label>
+                                <input type="date" id="date_from" name="date_from" value="<?php echo e(request('date_from')); ?>"
+                                    class="w-full rounded-full border border-gray-300 shadow-sm focus:border-[#1D4ED8] focus:ring-[#1D4ED8] px-4 py-1 text-sm" />
+                            </div>
+
+                            <div class="flex flex-col gap-1">
+                                <label for="date_to" class="text-sm">To:</label>
+                                <input type="date" id="date_to" name="date_to" value="<?php echo e(request('date_to')); ?>"
+                                    class="w-full rounded-full border border-gray-300 shadow-sm focus:border-[#1D4ED8] focus:ring-[#1D4ED8] px-4 py-1 text-sm" />
+                            </div>
+
+                            
+                            <div class="flex items-end gap-2 mt-1 md:col-span-2">
+                                <button type="submit" class="bg-green-600 text-white px-4 py-1 text-sm rounded-full hover:bg-green-700 transition">
+                                    Apply filters
+                                </button>
+
+                                <a href="<?php echo e(isset($folder) ? route('admin.folders.files', $folder->id) : route('files.view')); ?>"
+                                    class="bg-gray-300 text-gray-800 px-4 py-1 text-sm rounded-full hover:bg-gray-400 transition flex items-center gap-1">
+                                    <i class="bi bi-x-circle"></i> Clean filters
+                                </a>
+                            </div>
+                        </div>
                     </form>
+
+
 
                     
                     <ul id="fileList" class="divide-y divide-gray-200 mb-4">
@@ -107,7 +157,7 @@
                         <li class="flex justify-between items-center py-2">
                             <span><?php echo e($file->name); ?></span>
                             <div class="flex gap-2">
-                                <a href="<?php echo e(Storage::url($file->path)); ?>" target="_blank" class="bg-[#0464FA] text-white px-2 py-1 rounded hover:bg-blue-600 text-xs">
+                                <a href="<?php echo e(route('files.view', $file->id)); ?>" target="_blank" class="bg-[#0464FA] text-white px-2 py-1 rounded hover:bg-blue-600 text-xs">
                                     <i class="bi bi-eye"></i>
                                 </a>
 
@@ -174,118 +224,5 @@
 <?php $component = $__componentOriginal9ac128a9029c0e4701924bd2d73d7f54; ?>
 <?php unset($__componentOriginal9ac128a9029c0e4701924bd2d73d7f54); ?>
 <?php endif; ?>
-
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const dropzone = document.getElementById('dropzone');
-            const fileInput = document.getElementById('fileInput');
-            const fileNameInput = document.getElementById('fileName');
-            const uploadButton = document.getElementById('uploadButton');
-            const successMessage = document.getElementById('success-message');
-            const csrfToken = '<?php echo e(csrf_token()); ?>';
-
-            dropzone.addEventListener('click', () => fileInput.click());
-
-            fileInput.addEventListener('change', () => {
-                if (fileInput.files.length > 0) {
-                    fileNameInput.value = fileInput.files[0].name;
-                    uploadButton.disabled = false;
-                } else {
-                    fileNameInput.value = '';
-                    uploadButton.disabled = true;
-                }
-            });
-
-            dropzone.addEventListener('dragover', e => {
-                e.preventDefault();
-                dropzone.classList.add('bg-gray-100');
-            });
-
-            dropzone.addEventListener('dragleave', e => {
-                e.preventDefault();
-                dropzone.classList.remove('bg-gray-100');
-            });
-
-            dropzone.addEventListener('drop', e => {
-                e.preventDefault();
-                dropzone.classList.remove('bg-gray-100');
-                const file = e.dataTransfer.files[0];
-                if (file) {
-                    fileInput.files = e.dataTransfer.files;
-                    fileNameInput.value = file.name;
-                    uploadButton.disabled = false;
-                }
-            });
-
-            uploadButton.addEventListener('click', () => {
-                if (fileInput.files.length === 0) {
-                    alert("<?php echo e(__('Please select a file first.')); ?>");
-                    return;
-                }
-                uploadFile(fileInput.files[0]);
-                uploadButton.disabled = true;
-            });
-
-            function uploadFile(file) {
-                const formData = new FormData();
-                formData.append('file', file);
-
-                fetch("<?php echo e(route('admin.folders.files.upload', $folder->id ?? 0)); ?>", {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': csrfToken
-                        },
-                        body: formData,
-                        credentials: 'same-origin'
-                    })
-                    .then(response => response.text())
-                    .then(text => {
-                        try {
-                            const data = JSON.parse(text);
-                            if (data.success) {
-                                location.reload();
-                            } else {
-                                alert(data.error || "<?php echo e(__('Upload failed.')); ?>");
-                                uploadButton.disabled = false;
-                            }
-                        } catch (e) {
-                            alert("<?php echo e(__('Upload error.')); ?>");
-                            uploadButton.disabled = false;
-                        }
-                    })
-                    .catch(() => {
-                        alert("<?php echo e(__('Upload error.')); ?>");
-                        uploadButton.disabled = false;
-                    });
-            }
-
-            const clearBtn = document.getElementById('clear-search');
-            const searchInput = document.getElementById('searchInput');
-            clearBtn.addEventListener('click', () => {
-                if (searchInput.value !== '') {
-                    searchInput.value = '';
-                    searchInput.form.submit();
-                }
-            });
-
-            searchInput.addEventListener('input', () => {
-                if (searchInput.value === '') {
-                    searchInput.form.submit();
-                }
-            });
-
-            if (successMessage) {
-                setTimeout(() => {
-                    successMessage.style.transition = 'opacity 0.5s ease';
-                    successMessage.style.opacity = '0';
-                    setTimeout(() => {
-                        successMessage.remove();
-                    }, 500);
-                }, 3000);
-            }
-        });
-    </script>
 </body>
-
 </html><?php /**PATH /var/www/html/resources/views/files.blade.php ENDPATH**/ ?>

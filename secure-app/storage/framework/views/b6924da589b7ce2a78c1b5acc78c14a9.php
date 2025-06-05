@@ -63,9 +63,9 @@
 <?php endif; ?>
 
             <?php if($user->profile_image_path): ?>
-            <img src="<?php echo e(asset('storage/' . $user->profile_image_path)); ?>" class="rounded-full w-20 h-20 object-cover" alt="Foto de perfil">
+            <img src="<?php echo e(asset('storage/' . $user->profile_image_path)); ?>" class="rounded-full w-20 h-20 object-cover" alt="Profile picture">
             <?php else: ?>
-            <p>No hay imagen de perfil guardada.</p>
+            <p>No profile picture saved.</p>
             <?php endif; ?>
 
 

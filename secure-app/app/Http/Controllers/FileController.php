@@ -12,11 +12,81 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\TemporaryLink;
 use App\Models\Permission;
 use Carbon\Carbon;
+use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class FileController extends Controller
 {
+
+    public function index(Folder $folder, Request $request): View
+    {
+        $user = Auth::user();
+        $search = $request->input('search');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
+        $filesQuery = $folder->files();
+
+        // Restringir archivos según permisos, salvo si es administrador
+        if ($user && $user->user_type !== 'administrator') {
+            $permittedFileIds = \App\Models\Permission::where('user_id', $user->id)
+                ->where('folder_id', $folder->id)
+                ->whereNotNull('file_id')
+                ->where('permission_type', '!=', 'no-access')
+                ->pluck('file_id')
+                ->toArray();
+
+            $filesQuery->whereIn('id', $permittedFileIds);
+        }
+
+        // Filtro por búsqueda parcial en nombre
+        if ($search) {
+            $filesQuery->where('name', 'like', "%{$search}%");
+        }
+
+        // Filtro por rango de fechas (suponiendo que tienes un campo 'created_at' en archivos)
+        if ($dateFrom) {
+            $filesQuery->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $filesQuery->whereDate('created_at', '<=', $dateTo);
+        }
+
+        // Paginación (opcional)
+        $files = $filesQuery->orderBy('created_at', 'desc')->paginate(15)->withQueryString();
+
+        // Para pasar permiso y carpeta a la vista (necesario para mostrar botones según permisos)
+        $userPermission = null;
+        if ($user) {
+            $userPermission = $user->user_type === 'administrator'
+                ? 'edit'
+                : \App\Models\Permission::where('user_id', $user->id)
+                ->where('folder_id', $folder->id)
+                ->value('permission_type');
+        }
+
+        return view('files', compact('folder', 'files', 'userPermission'));
+    }
+
+    public function viewFile(File $file)
+    {
+        // Comprobamos si el archivo existe en storage
+        if (!Storage::disk('public')->exists($file->path)) {
+            return redirect()->back()->with('error', 'Archivo no encontrado');
+        }
+
+        // Obtenemos el mime type para la cabecera
+        $mimeType = $file->mime_type;
+
+        // Servimos el archivo con contenido inline (visualización en navegador)
+        return Storage::disk('public')->response($file->path, $file->name, [
+            'Content-Disposition' => 'inline; filename="' . $file->name . '"',
+            'Content-Type' => $mimeType,
+        ]);
+    }
+
+
     // Mostrar archivos sin carpeta asignada
     public function showAllFilesView(Request $request)
     {
@@ -31,22 +101,6 @@ class FileController extends Controller
         $files = $files->get();
 
         return view('files', compact('files', 'query'));
-    }
-
-    // Mostrar archivos de una carpeta concreta
-    public function index(Folder $folder, Request $request)
-    {
-        $query = $request->input('search');
-
-        $filesQuery = $folder->files();
-
-        if ($query) {
-            $filesQuery = $filesQuery->where('name', 'LIKE', '%' . $query . '%');
-        }
-
-        $files = $filesQuery->get();
-
-        return view('files', compact('files', 'folder', 'query'));
     }
 
     // Subida de archivo sin carpeta (vista normal)
