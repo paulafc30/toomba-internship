@@ -19,10 +19,14 @@ class FolderController extends Controller
     {
         $user = Auth::user();
         $search = $request->input('search');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+
         $foldersQuery = Folder::query();
 
         if ($user && $user->user_type !== 'administrator') {
-            $userId = Auth::id();
+            $userId = $user->id;
+
             $permittedFolderIds = Permission::where('user_id', $userId)
                 ->whereNotNull('folder_id')
                 ->where('permission_type', '!=', 'no-access')
@@ -32,15 +36,31 @@ class FolderController extends Controller
             $foldersQuery->whereIn('id', $permittedFolderIds);
         }
 
+        // Aplicar filtros adicionales
         if ($search) {
-            $foldersQuery->where('name', 'like', '%' . $search . '%');
+            $foldersQuery->where('name', 'like', $search . '%');
         }
 
-        $folders = $foldersQuery->paginate(10)->appends(['search' => $search]);
+        // Filtros por fecha
+        if ($dateFrom) {
+            $foldersQuery->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $foldersQuery->whereDate('created_at', '<=', $dateTo);
+        }
 
-        // Si no hay resultados, se muestra mensaje en la vista
-        return view('folders', compact('folders', 'user', 'search'));
+        // Añadir todos los filtros a la paginación
+        $folders = $foldersQuery->paginate(10)->appends([
+            'search' => $search,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+        ]);
+
+
+        return view('folders', compact('folders', 'user', 'search', 'dateFrom', 'dateTo'));
     }
+
+
 
     /**
      * Show the form for creating a new resource (folder).
