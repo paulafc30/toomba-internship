@@ -9,7 +9,7 @@
 
 # Prácticas en Toomba Digital Agency
 
-¡Hola! Soy **[Tu Nombre Completo]** y este repositorio contiene el trabajo que desarrollé durante mis prácticas en **Toomba Digital Agency**. Mi rol se centró en el desarrollo backend, donde profundicé en las buenas prácticas de programación, la seguridad y la utilización de tecnologías modernas.
+Este repositorio contiene el trabajo que desarrollé durante mis prácticas en **Toomba Digital Agency**. Mi rol se centró en el desarrollo backend, donde profundicé en las buenas prácticas de programación, la seguridad y la utilización de tecnologías modernas.
 
 ---
 
@@ -49,5 +49,3 @@ Este fue un proyecto introductorio diseñado para consolidar mis conocimientos e
 * La estructura y organización de un proyecto Laravel.
 
 ---
-
-**[Tu Nombre]** | [Tu Enlace a LinkedIn] | [Tu Correo Electrónico]
