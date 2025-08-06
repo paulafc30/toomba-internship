@@ -27,6 +27,7 @@ Los principales logros del proyecto fueron:
 * **Lenguaje:** PHP 8.1
 * **Framework:** Laravel 9
 * **Base de datos:** MySQL
+* **Estilos:** Tailwind CSS
 
 ---
 
@@ -37,9 +38,9 @@ Durante mis prácticas, también realicé otros ejercicios para familiarizarme c
 #### `practicando-docker`
 
 En esta carpeta, aprendí a usar **Docker** a través de varios ejercicios prácticos. Mi objetivo fue entender cómo **empaquetar aplicaciones en contenedores** para asegurar su consistencia en cualquier entorno. Me familiaricé con los conceptos de:
-* `Dockerfiles` para construir imágenes.
+* **Docker Compose** para definir y ejecutar aplicaciones multi-contenedor.
 * Gestión de contenedores y volúmenes.
-* `Docker Compose` para definir y ejecutar aplicaciones multi-contenedor.
+* Uso de **MailHog** en un contenedor de Docker para simular un servidor de correo electrónico, lo que nos permitió probar el envío de correos de la aplicación sin tener que usar un servidor real.
 
 #### `laravel-project`
 
