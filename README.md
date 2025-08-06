@@ -7,60 +7,47 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## About Laravel
+# Prácticas en Toomba Digital Agency
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+¡Hola! Soy **[Tu Nombre Completo]** y este repositorio contiene el trabajo que desarrollé durante mis prácticas en **Toomba Digital Agency**. Mi rol se centró en el desarrollo backend, donde profundicé en las buenas prácticas de programación, la seguridad y la utilización de tecnologías modernas.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Proyecto Principal: `secure-app`
 
-## Learning Laravel
+Este fue el proyecto central de mis prácticas, que tuve la oportunidad de realizar junto a mi mentor. El objetivo principal era el desarrollo de una aplicación web segura, poniendo especial énfasis en la **seguridad del código y la arquitectura de la aplicación**.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Los principales logros del proyecto fueron:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+* **Manejo de Base de Datos**: Diseñamos el esquema de la base de datos para la aplicación y utilizamos el ORM **Eloquent** de Laravel para interactuar con ella de manera eficiente.
+* **Seguridad y Estructura del Código**: Nos centramos en implementar buenas prácticas de programación para prevenir vulnerabilidades y estructurar el código de forma modular y fácil de mantener.
+* **Autenticación y Autorización**: Trabajamos en la creación de un sistema de registro y login seguro, utilizando las funcionalidades de Laravel para la gestión de usuarios y roles.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**Tecnologías clave utilizadas:**
+* **Lenguaje:** PHP 8.1
+* **Framework:** Laravel 9
+* **Base de datos:** MySQL
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Otros Proyectos y Aprendizajes
 
-### Premium Partners
+Durante mis prácticas, también realicé otros ejercicios para familiarizarme con herramientas esenciales para el desarrollo de software.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+#### `practicando-docker`
 
-## Contributing
+En esta carpeta, aprendí a usar **Docker** a través de varios ejercicios prácticos. Mi objetivo fue entender cómo **empaquetar aplicaciones en contenedores** para asegurar su consistencia en cualquier entorno. Me familiaricé con los conceptos de:
+* `Dockerfiles` para construir imágenes.
+* Gestión de contenedores y volúmenes.
+* `Docker Compose` para definir y ejecutar aplicaciones multi-contenedor.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+#### `laravel-project`
 
-## Code of Conduct
+Este fue un proyecto introductorio diseñado para consolidar mis conocimientos en el framework **Laravel** y servir como base para el proyecto `secure-app`. Aquí aprendí:
+* El patrón de diseño **MVC (Modelo-Vista-Controlador)**.
+* Manejo de rutas, `migrations` y el ORM **Eloquent**.
+* La estructura y organización de un proyecto Laravel.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+**[Tu Nombre]** | [Tu Enlace a LinkedIn] | [Tu Correo Electrónico]
