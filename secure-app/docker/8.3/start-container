@@ -1,20 +1,37 @@
 #!/usr/bin/env bash
 
+# Comprobar usuario supervisor
 if [ "$SUPERVISOR_PHP_USER" != "root" ] && [ "$SUPERVISOR_PHP_USER" != "sail" ]; then
     echo "You should set SUPERVISOR_PHP_USER to either 'sail' or 'root'."
     exit 1
 fi
 
+# Ajustar UID del usuario sail si se ha pasado WWWUSER
 if [ ! -z "$WWWUSER" ]; then
     usermod -u $WWWUSER sail
 fi
 
+# Crear carpeta de composer si no existe y dar permisos
 if [ ! -d /.composer ]; then
     mkdir /.composer
 fi
-
 chmod -R ugo+rw /.composer
 
+# Compilar assets de Vite si existen
+if [ -f /var/www/html/package.json ]; then
+    echo "Compilando assets de Vite..."
+    cd /var/www/html || exit 1
+    # Usar pnpm si está instalado, si no fallback a npm
+    if command -v pnpm >/dev/null 2>&1; then
+        pnpm install
+        pnpm run build
+    else
+        npm install
+        npm run build
+    fi
+fi
+
+# Ejecutar comando pasado o supervisord
 if [ $# -gt 0 ]; then
     if [ "$SUPERVISOR_PHP_USER" = "root" ]; then
         exec "$@"
