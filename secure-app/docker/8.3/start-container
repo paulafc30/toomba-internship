@@ -36,7 +36,7 @@ if [ $# -gt 0 ]; then
     if [ "$SUPERVISOR_PHP_USER" = "root" ]; then
         exec "$@"
     else
-        exec gosu $WWWUSER "$@"
+        exec gosu "$SUPERVISOR_PHP_USER" "$@"
     fi
 else
     exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
